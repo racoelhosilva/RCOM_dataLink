@@ -3,10 +3,12 @@
 
 #include <stdint.h>
 
+#include "alarm.h"
+
 #define FRAME_BASE_SIZE 5
 
 int readSOrUFrame(uint8_t addressField, uint8_t controlField);
-
+int readSOrUFrameTimeout(uint8_t addressField, uint8_t controlField);
 
 int writeSOrUFrame(uint8_t addressField, uint8_t controlField);
 

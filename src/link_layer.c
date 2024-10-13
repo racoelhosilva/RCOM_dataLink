@@ -9,22 +9,12 @@
 #include "special_bytes.h"
 #include "state.h"
 #include "frame.h"
+#include "alarm.h"
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
-int alarmEnabled = FALSE;
-int alarmCount = 0;
-
-#define MAX_RETRIES     5
-
-// Alarm function handler
-void alarmHandler(int signal) {
-    alarmEnabled = TRUE;
-    alarmCount++;
-
-    printf("Alarm #%d\n", alarmCount);
-}
+int maxTries;
 
 unsigned char nextRecvState(
     unsigned char state,
@@ -143,88 +133,85 @@ int llopen(LinkLayer connectionParameters)
         return -1;
 
     LinkLayerRole role = connectionParameters.role;
+    maxTries = connectionParameters.nRetransmissions;
+    int timeout = connectionParameters.timeout;
+
     if (role == LlTx) {
-        (void)signal(SIGALRM, alarmHandler);
+        configAlarm();
 
-        unsigned char buf[6] = {FLAG, A1, SET, A1 ^ SET, FLAG, '\0'};
-        unsigned char state = STATE_START;
+        while (alarmStatus.count < maxTries) {
+            if (!alarmStatus.enabled) {
+                printf("Try #%d\n", alarmStatus.count);
 
-        while (alarmCount < MAX_RETRIES) {
-            
-            if (!alarmEnabled) {
-                int bytes = writeBytesSerialPort(buf, 5);
-                if (bytes < 0) {
-                    perror("Error writing serial port");
-                    return -1;
-                }
-                printf("%d bytes written\n", bytes);
-                state = STATE_START;
+                writeSOrUFrame(A1, SET);
+                resetAlarm(timeout);
 
-                alarm(3);
-                alarmEnabled = TRUE;
-            }
+                // Wait until all bytes have been written to the serial port
+                // sleep(1);  // TODO: Is this to be removed?
 
-            // Wait until all bytes have been written to the serial port
-            sleep(1);
-
-            while (state != STATE_STOP && alarmEnabled) {
-                unsigned char byte;
-                int r = readByteSerialPort(&byte);
-                if (r < 0){
-                    perror("openRecv");
-                    return -1;
-                }
-
-                if (r > 0) {
-                    printf(":%02x\t", byte);
-
-                    switch (state) {
-                    case STATE_START:
-                        if (byte == FLAG) 
-                            state = STATE_FLAG_RCV;
-                        break;
-                    case STATE_FLAG_RCV:
-                        if (byte == A1) 
-                            state = STATE_A_RCV;
-                        else if (byte != FLAG)
-                            state = STATE_START;
-                        break;
-                    case STATE_A_RCV:
-                        if (byte == UA) 
-                            state = STATE_C_RCV;
-                        else if (byte == FLAG)
-                            state = STATE_FLAG_RCV;
-                        else 
-                            state = STATE_START;
-                        break;
-                    case STATE_C_RCV:
-                        if (byte == (A1 ^ UA)) 
-                            state = STATE_BCC1_OK;
-                        else if (byte == FLAG)
-                            state = STATE_FLAG_RCV;
-                        else 
-                            state = STATE_START;
-                        break;
-                    case STATE_BCC1_OK:
-                        if (byte == FLAG) 
-                            state = STATE_STOP;
-                        else 
-                            state = STATE_START;
-                        break;
-                    default:
-                        break;
-                    }
-                    printf("next state: %d\n", state);
+                int r = readSOrUFrameTimeout(A1, UA);
+                if (r != 0) {
+                    stopAlarm();
+                    return r;
                 }
             }
 
-            printf("Try #%d\n", alarmCount);
+            // while (state != STATE_STOP && alarmStatus.enabled) {
+                // unsigned char byte;
+                // int r = readByteSerialPort(&byte);
+                // if (r < 0){
+                //     perror("openRecv");
+                //     return -1;
+                // }
+
+                // if (r > 0) {
+                //     printf(":%02x\t", byte);
+
+                //     switch (state) {
+                //     case STATE_START:
+                //         if (byte == FLAG) 
+                //             state = STATE_FLAG_RCV;
+                //         break;
+                //     case STATE_FLAG_RCV:
+                //         if (byte == A1) 
+                //             state = STATE_A_RCV;
+                //         else if (byte != FLAG)
+                //             state = STATE_START;
+                //         break;
+                //     case STATE_A_RCV:
+                //         if (byte == UA) 
+                //             state = STATE_C_RCV;
+                //         else if (byte == FLAG)
+                //             state = STATE_FLAG_RCV;
+                //         else 
+                //             state = STATE_START;
+                //         break;
+                //     case STATE_C_RCV:
+                //         if (byte == (A1 ^ UA)) 
+                //             state = STATE_BCC1_OK;
+                //         else if (byte == FLAG)
+                //             state = STATE_FLAG_RCV;
+                //         else 
+                //             state = STATE_START;
+                //         break;
+                //     case STATE_BCC1_OK:
+                //         if (byte == FLAG) 
+                //             state = STATE_STOP;
+                //         else 
+                //             state = STATE_START;
+                //         break;
+                //     default:
+                //         break;
+                //     }
+                //     printf("next state: %d\n", state);
+                // }
+            // }
         }
 
-        alarm(0);
-        alarmEnabled = FALSE;
+        stopAlarm();
+        perror("llopen");
+        return -1;
 
-        return 1;
     } else if (role == LlRx) {
         
         // unsigned char state = STATE_START;
@@ -260,6 +247,8 @@ int llopen(LinkLayer connectionParameters)
             return -1;
         if (writeSOrUFrame(A1, UA) < 0)
             return -1;
+
+        sleep(1);  // TODO: Remove this?
     }
 
     return 1;
@@ -269,7 +258,8 @@ int llopen(LinkLayer connectionParameters)
 // LLWRITE
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize) {
-    (void)signal(SIGALRM, alarmHandler);
+    configAlarm();
+
     unsigned char bcc2 = 0;
     unsigned char msg[MAX_PAYLOAD_SIZE] = {FLAG, A1, C(0), A1 ^ C(0)};
     for (int i = 0; i < bufSize; i++){
@@ -282,11 +272,11 @@ int llwrite(const unsigned char *buf, int bufSize) {
     unsigned char state = STATE_START;
     int status = REJ;
 
-    while (alarmCount < MAX_RETRIES && status != ACC) {
+    while (alarmStatus.count < maxTries && status != ACC) {
 
-        if (!alarmEnabled) {
+        if (!alarmStatus.enabled) {
             alarm(3);
-            alarmEnabled = TRUE;
+            alarmStatus.enabled = TRUE;
 
             int bytes = writeBytesSerialPort(msg, 40);
             if (bytes < 0) {
@@ -300,7 +290,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
             state = STATE_START;
         }
 
-        while (state != STATE_STOP && alarmEnabled) {
+        while (state != STATE_STOP && alarmStatus.enabled) {
             unsigned char byte;
             int r = readByteSerialPort(&byte);
             if (r < 0){
@@ -359,12 +349,12 @@ int llwrite(const unsigned char *buf, int bufSize) {
             }
         }
 
-        printf("Try #%d\n", alarmCount);
+        printf("Try #%d\n", alarmStatus.count);
         printf("Status %d\n", status);
     }
 
     alarm(0);
-    alarmEnabled = FALSE;
+    alarmStatus.enabled = FALSE;
 
     return 1;
 }

@@ -10,22 +10,48 @@ int readSOrUFrame(uint8_t addressField, uint8_t controlField) {
     State state = STATE_START;
     int totalBytes = 0;
 
-    printf("Read <- ");
+    printf("Read  <- ");
     while (state != STATE_STOP) {
         uint8_t byte;
         int r = readByteSerialPort(&byte);
         if (r < 0)
             return -1;
 
-        totalBytes++;
-        printf(":%02x", byte);
+        if (r == 1) {
+            totalBytes++;
+            printf(":%02x", byte);
 
-        if (r == 1)
             state = nextSOrUFrameState(state, byte, addressField, controlField);
+        }
     }
 
     printf(": %d bytes\n", totalBytes);
     return 1;
+}
+
+
+int readSOrUFrameTimeout(uint8_t addressField, uint8_t controlField) {
+    State state = STATE_START;
+    int totalBytes = 0;
+
+    printf("Read  <- ");
+    while (state != STATE_STOP && alarmStatus.enabled) {
+        uint8_t byte;
+        int r = readByteSerialPort(&byte);
+        if (r < 0)
+            return -1;
+
+        if (r == 1) {
+            totalBytes++;
+            printf(":%02x", byte);
+            fflush(stdout);
+
+            state = nextSOrUFrameState(state, byte, addressField, controlField);
+        }
+    }
+
+    printf(": %d bytes\n", totalBytes);
+    return alarmStatus.enabled ? 1 : 0;
 }
 
 
