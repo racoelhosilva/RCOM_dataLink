@@ -23,8 +23,10 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     if (strcmp(role, "tx") == 0) {
         unsigned char message[] = "Mic Test 1,2,1 is this on?";
-        message[26] = 'n';
-        int r = llwrite(message, 27);
+        printf("Message to transmit: %s\n", (char *)message);
+        printf("Message length: %d\n", (int)sizeof(message));
+
+        int r = llwrite(message, sizeof(message));
         if (r < 0){
             perror("Fail llwrite");
             return;
@@ -36,8 +38,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         if (bytes < 0)
             return;
 
-        printf(":");
-        for (int i = 0; i < bytes + 2; i++)
-            printf("%02x:", buf[i]);
+        printf("Received message: %s\n", (char *)buf);
+        printf("Message length: %d\n", bytes);
     }
 }

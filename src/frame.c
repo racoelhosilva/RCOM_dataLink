@@ -103,10 +103,8 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t* data) {
                 return -1;
 
             if (state == STATE_DATA) {
-                if (dataIndex >= 0) {
-                    printf("%02x", prevByte);
+                if (dataIndex >= 0)
                     data[dataIndex] = prevByte;
-                }
 
                 dataIndex++;
                 prevByte = byte;
