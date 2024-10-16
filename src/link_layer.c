@@ -338,7 +338,7 @@ int llread(unsigned char *packet)
             if (readFrameNumber == frameNumber)
                 frameNumber = !frameNumber;
 
-            if (writeSOrUFrame(A1, RR(1)) > 0)
+            if (writeSOrUFrame(A1, RR(frameNumber)) > 0)
                 return r;
         }
     }
