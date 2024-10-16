@@ -5,11 +5,15 @@
 
 #include "alarm.h"
 
-#define FRAME_BASE_SIZE 5
+#define SU_FRAME_SIZE     5
+#define I_FRAME_BASE_SIZE 6
 
-int readSOrUFrame(uint8_t addressField, uint8_t controlField);
-int readSOrUFrameTimeout(uint8_t addressField, uint8_t controlField);
+int readKnownSOrUFrame(uint8_t addressField, uint8_t controlField);
+int readKnownSOrUFrameTimeout(uint8_t addressField, uint8_t controlField);
+int readSOrUFrameTimeout(uint8_t addressField, uint8_t *controlField);
+int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data);
 
 int writeSOrUFrame(uint8_t addressField, uint8_t controlField);
+int writeIFrame(uint8_t addressField, uint8_t frameNumber, const uint8_t* data, int dataSize);
 
 #endif  // _FRAME_H_

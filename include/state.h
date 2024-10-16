@@ -9,6 +9,7 @@ typedef enum {
     STATE_A_RCV,
     STATE_C_RCV,
     STATE_BCC1_OK,
+    STATE_DATA,
     STATE_STOP,
     STATE_BCC2_BAD,
 } State;
@@ -16,8 +17,9 @@ typedef enum {
 #define REJ            0
 #define ACC            1
 
-State nextSOrUFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t controlField);
+State nextKnownSOrUFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t controlField);
+State nextSOrUFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *controlField);
 
-State nextIFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t frameNumber);
+State nextIFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *frameNumber, uint8_t *xor);
 
 #endif  // _STATE_H_
