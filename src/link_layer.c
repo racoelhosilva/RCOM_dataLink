@@ -18,112 +18,6 @@ int maxTries;
 int timeout;
 uint8_t frameNumber;
 
-unsigned char nextRecvState(
-    unsigned char state,
-    unsigned char byte,
-    unsigned char cByte
-) {
-    printf(":%02x", byte);
-
-    switch (state) {
-      case STATE_START:
-        if (byte == FLAG)
-            state = STATE_FLAG_RCV;
-        break;
-
-      case STATE_FLAG_RCV:
-        if (byte == A1)
-            state = STATE_A_RCV;
-        else if (byte != FLAG)
-            state = STATE_START;
-        break;
-
-      case STATE_A_RCV:
-        if (byte == cByte)
-            state = STATE_C_RCV;
-        else if (byte == FLAG)
-            state = STATE_FLAG_RCV;
-        else
-            state = STATE_START;
-        break;
-
-      case STATE_C_RCV:
-        if (byte == (A1 ^ cByte))
-            state = STATE_BCC1_OK;
-        else if (byte == FLAG)
-            state = STATE_FLAG_RCV;
-        else
-            state = STATE_START;
-        break;
-
-      case STATE_BCC1_OK:
-        if (byte == FLAG)
-            state = STATE_STOP;
-        else
-            state = STATE_START;
-        break;
-
-      default:
-        break;
-    }
-
-    return state;
-}
-
-unsigned char nextReadState(
-    unsigned char state,
-    unsigned char byte,
-    unsigned char frameNumber,
-    unsigned char *xor
-) {
-    printf(":%02x", byte);
-
-    switch (state) {
-      case STATE_START:
-        if (byte == FLAG)
-            state = STATE_FLAG_RCV;
-        break;
-
-      case STATE_FLAG_RCV:
-        if (byte == A1)
-            state = STATE_A_RCV;
-        else if (byte != FLAG)
-            state = STATE_START;
-        break;
-
-      case STATE_A_RCV:
-        if ((frameNumber == 0 && byte == C(0)) || (frameNumber == 1 && byte == C(1)))
-            state = STATE_C_RCV;
-        else if (byte == FLAG)
-            state = STATE_FLAG_RCV;
-        else
-            state = STATE_START;
-        break;
-
-      case STATE_C_RCV:
-        if (byte == (A1 ^ (frameNumber == 0 ? C(0) : C(1))))
-            state = STATE_BCC1_OK;
-        else if (byte == FLAG)
-            state = STATE_FLAG_RCV;
-        else
-            state = STATE_START;
-        break;
-
-      case STATE_BCC1_OK:
-        if (byte == FLAG) {
-            state = *xor == 0 ? STATE_STOP : STATE_BCC2_BAD;
-        } else {
-            *xor ^= byte;
-        }
-        break;
-
-      default:
-        break;
-    }
-
-    return state;
-}
-
 ////////////////////////////////////////////////
 // LLOPEN
 ////////////////////////////////////////////////
@@ -441,13 +335,11 @@ int llread(unsigned char *packet)
     for (int nTries = 0; nTries < maxTries; nTries++) {
         r = readIFrame(A1, &readFrameNumber, packet);
         if (r > 0) {
-            if (readFrameNumber == frameNumber) {
-                frameNumber = (frameNumber + 1) % 2;
-            }
+            if (readFrameNumber == frameNumber)
+                frameNumber = !frameNumber;
 
-            if (writeSOrUFrame(A1, RR(frameNumber)) > 0) {
+            if (writeSOrUFrame(A1, RR(1)) > 0)
                 return r;
-            }
         }
     }
 

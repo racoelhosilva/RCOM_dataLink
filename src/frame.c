@@ -93,17 +93,6 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t* data) {
             return -1;
 
         if (r == 1) {
-            if (state == STATE_DATA) {
-                if (dataIndex > 0)
-                    data[dataIndex] = prevByte;
-
-                dataIndex++;
-                prevByte = byte;
-
-            } else {
-                dataIndex = -1;
-            }
-
             totalBytes++;
             printf(":%02x", byte);
             fflush(stdout);
@@ -112,11 +101,24 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t* data) {
 
             if (state == STATE_BCC2_BAD)
                 return -1;
+
+            if (state == STATE_DATA) {
+                if (dataIndex >= 0) {
+                    printf("%02x", prevByte);
+                    data[dataIndex] = prevByte;
+                }
+
+                dataIndex++;
+                prevByte = byte;
+
+            } else if (state != STATE_STOP) {
+                dataIndex = -1;
+            }
         }
     }
 
     printf(": %d bytes\n", totalBytes);
-    return alarmStatus.enabled ? dataIndex : 0;
+    return dataIndex;
 }
 
 

@@ -21,20 +21,23 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         return;
     }
 
-    // if (strcmp(role, "tx") == 0) {
-    //     const unsigned char message[] = "Mic Test 1,2,1 is this on?";
-    //     int r = llwrite(message, 32);
-    //     if (r < 0){
-    //         perror("Fail llwrite");
-    //         return;
-    //     }
-    // } else {
-    //     unsigned char buf[MAX_PAYLOAD_SIZE];
-    //     int bytes = llread(buf);
-    //     if (bytes < 0)
-    //         return;
+    if (strcmp(role, "tx") == 0) {
+        unsigned char message[] = "Mic Test 1,2,1 is this on?";
+        message[26] = 'n';
+        int r = llwrite(message, 27);
+        if (r < 0){
+            perror("Fail llwrite");
+            return;
+        }
 
-    //     for (int i = 0; buf[i] != '\0'; i++)
-    //         printf("%c", buf[i]);
-    // }
+    } else {
+        unsigned char buf[MAX_PAYLOAD_SIZE] = {0};
+        int bytes = llread(buf);
+        if (bytes < 0)
+            return;
+
+        printf(":");
+        for (int i = 0; i < bytes + 2; i++)
+            printf("%02x:", buf[i]);
+    }
 }
