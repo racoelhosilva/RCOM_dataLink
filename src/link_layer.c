@@ -37,10 +37,12 @@ int llopen(LinkLayer connectionParameters)
         configAlarm();
 
         for (int nTries = 0; nTries < maxTries; nTries++) {
-            printf("Try #%d\n", alarmStatus.count);
+            stopAlarm();
+            printf("Try #%d\n", nTries);
 
             if (writeSOrUFrame(A1, SET) < 0)
                 return -1;
+
             resetAlarm(timeout);
 
             // Wait until all bytes have been written to the serial port
@@ -76,7 +78,8 @@ int llwrite(const unsigned char *buf, int bufSize) {
     configAlarm();
 
     for (int nTries = 0; nTries < maxTries; nTries++) {
-        printf("Try #%d\n", alarmStatus.count);
+        stopAlarm();
+        printf("Try #%d\n", nTries);
 
         int bytes = writeIFrame(A1, frameNumber, buf, bufSize);
         if (bytes < 0)
@@ -92,12 +95,13 @@ int llwrite(const unsigned char *buf, int bufSize) {
         int r;
         if ((r = readSOrUFrameTimeout(A1, &controlField)) < 0)
             return -1;
-        if (r == 0 || (controlField != RR(0) && controlField != RR(1)))
+
+        int goodControlField = controlField != RR(0) && controlField != RR(1) && controlField != REJ(frameNumber);
+        if (r == 0 || goodControlField)
             continue;
 
-        uint8_t newFrameNumber = controlField == RR(0) ? 0 : 1;
-        if (newFrameNumber != frameNumber) {
-            frameNumber = newFrameNumber;
+        if (controlField == RR(!frameNumber)) {
+            frameNumber = !frameNumber;
             return bytes;
         }
     }
@@ -112,17 +116,22 @@ int llwrite(const unsigned char *buf, int bufSize) {
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
-    int r;
+    int bytes;
     uint8_t readFrameNumber;
 
     for (int nTries = 0; nTries < maxTries; nTries++) {
-        r = readIFrame(A1, &readFrameNumber, packet);
-        if (r > 0) {
-            if (readFrameNumber == frameNumber)
-                frameNumber = !frameNumber;
+        bytes = readIFrame(A1, &readFrameNumber, packet);
+        if (bytes > 0 && readFrameNumber == frameNumber) {
+            int r = writeSOrUFrame(A1, RR(!frameNumber));
+            if (r < 0)
+                return -1;
 
-            if (writeSOrUFrame(A1, RR(frameNumber)) > 0)
-                return r;
+            frameNumber = !frameNumber;
+            return bytes;
+
+        } else if (bytes == 0) {
+            if (writeSOrUFrame(A1, REJ(frameNumber)) < 0)
+                return -1;
         }
     }
 

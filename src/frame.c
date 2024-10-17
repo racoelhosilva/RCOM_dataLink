@@ -87,7 +87,7 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t* data) {
 
     uint8_t byte;
     uint8_t prevByte;
-    while (state != STATE_STOP) {
+    while (state != STATE_STOP && state != STATE_BCC2_BAD) {
         int r = readByteSerialPort(&byte);
         if (r < 0)
             return -1;
@@ -98,9 +98,6 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t* data) {
             fflush(stdout);
 
             state = nextIFrameState(state, byte, addressField, frameNumber, &xor);
-
-            if (state == STATE_BCC2_BAD)
-                return -1;
 
             if (state == STATE_DATA) {
                 if (dataIndex >= 0)
@@ -116,7 +113,7 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t* data) {
     }
 
     printf(": %d bytes\n", totalBytes);
-    return dataIndex;
+    return state == STATE_BCC2_BAD ? 0 : dataIndex;
 }
 
 

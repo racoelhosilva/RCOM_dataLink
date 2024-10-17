@@ -49,7 +49,7 @@ State nextKnownSOrUFrameState(State state, uint8_t byte, uint8_t addressField, u
 }
 
 int isValidSOrUFrameControl(uint8_t byte) {
-    return byte == SET || byte == UA || byte == RR(0) || byte == RR(1) || byte == REJ0 || byte == REJ1 || byte == DISC;
+    return byte == SET || byte == UA || byte == RR(0) || byte == RR(1) || byte == REJ(0) || byte == REJ(1) || byte == DISC;
 }
 
 State nextSOrUFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *controlField)

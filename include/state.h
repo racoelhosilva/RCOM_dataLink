@@ -14,9 +14,6 @@ typedef enum {
     STATE_BCC2_BAD,
 } State;
 
-#define REJ            0
-#define ACC            1
-
 State nextKnownSOrUFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t controlField);
 State nextSOrUFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *controlField);
 
