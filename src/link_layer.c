@@ -64,8 +64,6 @@ int llopen(LinkLayer connectionParameters)
             return -1;
         if (writeSOrUFrame(A1, UA) < 0)
             return -1;
-
-        // sleep(1);  // TODO: Remove this?
     }
 
     return 1;
@@ -87,11 +85,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
 
         resetAlarm(timeout);
 
-        // Wait until all bytes have been written to the serial port
-        // sleep(1);  // TODO: Is this to be removed?
-
         uint8_t controlField = 0;
-
         int r;
         if ((r = readSOrUFrameTimeout(A1, &controlField)) < 0)
             return -1;

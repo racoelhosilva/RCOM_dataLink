@@ -143,11 +143,41 @@ State nextIFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *
         *xor = byte;
         break;
 
+        // TODO: Pass XOR processing to readIFrame
       case STATE_DATA:
+      case STATE_DATA_WRT_STUFF:
         if (byte == FLAG)
             state = *xor == 0 ? STATE_STOP : STATE_BCC2_BAD;
-        else
+        else if (byte == ESC)
+            state = STATE_DATA_ESC;
+        else {
             *xor ^= byte;
+            state = STATE_DATA;
+        }
+        break;
+
+      case STATE_DATA_ESC:
+      case STATE_DATA_ESC_WRT_STUFF:
+        if (byte == ESC2_FLAG) {
+            *xor ^= FLAG;
+            state = STATE_DATA_STUFF;
+        } else if (byte == ESC2_ESC) {
+            *xor ^= ESC;
+            state = STATE_DATA_STUFF;
+        } else if (byte == FLAG) {
+            state = STATE_FLAG_RCV;
+        } else {
+            state = STATE_START;
+        }
+        break;
+
+      case STATE_DATA_STUFF:
+        if (byte == ESC) {
+            state = STATE_DATA_ESC_WRT_STUFF;
+        } else {
+            *xor ^= byte;
+            state = STATE_DATA_WRT_STUFF;
+        }
         break;
 
       default:

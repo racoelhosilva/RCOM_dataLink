@@ -14,4 +14,8 @@
 
 #define C(n) (0x80 * ((n) & 1))  // Information frame n control field
 
+#define ESC       0x7D  // Escape octet
+#define ESC2_FLAG 0x5E  // Escaped flag 2nd byte
+#define ESC2_ESC  0x5D  // Escaped ESC 2nd byte
+
 #endif  // _SPECIAL_BYTES_H_

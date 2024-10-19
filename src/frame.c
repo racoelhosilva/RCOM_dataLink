@@ -77,7 +77,7 @@ int readSOrUFrameTimeout(uint8_t addressField, uint8_t *controlField) {
     return alarmStatus.enabled ? 1 : 0;
 }
 
-int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t* data) {
+int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
     State state = STATE_START;
     uint8_t xor = 0;
     int dataIndex = -1;
@@ -99,11 +99,19 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t* data) {
 
             state = nextIFrameState(state, byte, addressField, frameNumber, &xor);
 
-            if (state == STATE_DATA) {
-                if (dataIndex >= 0)
-                    data[dataIndex] = prevByte;
+            if (state == STATE_DATA || state == STATE_DATA_ESC || state == STATE_DATA_STUFF
+                || state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF) {
 
-                dataIndex++;
+                if (dataIndex >= 0) {
+                    if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF) {
+                        data[dataIndex] = prevByte == ESC2_FLAG ? FLAG : ESC;
+                    } else if (state != STATE_DATA_STUFF) {
+                        data[dataIndex] = prevByte;
+                    }
+                }
+
+                if (state != STATE_DATA_STUFF)
+                    dataIndex++;
                 prevByte = byte;
 
             } else if (state != STATE_STOP) {
@@ -140,6 +148,35 @@ int writeSOrUFrame(uint8_t addressField, uint8_t controlField) {
     return writeFrame(frame, SU_FRAME_SIZE);
 }
 
+int putByte(uint8_t byte, int *index, uint8_t *frame) {
+    if (byte == FLAG) {
+        if (*index + 1 >= MAX_PAYLOAD_SIZE)
+            return -1;
+
+        frame[4 + *index] = ESC;
+        frame[4 + *index + 1] = ESC2_FLAG;
+        *index += 2;
+
+        return 1;
+    }
+    
+    if (byte == ESC) {
+        if (*index + 1 >= MAX_PAYLOAD_SIZE)
+            return -1;
+
+        frame[4 + *index] = ESC;
+        frame[4 + *index + 1] = ESC2_ESC;
+        *index += 2;
+
+        return 1;
+    }
+    
+    frame[4 + *index] = byte;
+    (*index)++;
+
+    return 1;
+}
+
 int writeIFrame(uint8_t addressField, uint8_t frameNumber, const uint8_t *data, int dataSize) {
     uint8_t frame[I_FRAME_BASE_SIZE + MAX_PAYLOAD_SIZE];
 
@@ -149,15 +186,16 @@ int writeIFrame(uint8_t addressField, uint8_t frameNumber, const uint8_t *data, 
     frame[3] = addressField ^ C(frameNumber);
     
     uint8_t bcc2 = 0;
-    for (int i = 0; i < dataSize && i < MAX_PAYLOAD_SIZE; i++) {
-        frame[4 + i] = data[i];
-        bcc2 ^= data[i];
+    int frameIndex = 0;
+    for (int dataIndex = 0; dataIndex < dataSize; dataIndex++) {
+        bcc2 ^= data[dataIndex];
+        putByte(data[dataIndex], &frameIndex, frame);
     }
-    
-    frame[4 + dataSize] = bcc2;
-    frame[4 + dataSize + 1] = FLAG;
 
-    if (writeFrame(frame, I_FRAME_BASE_SIZE + dataSize) < 0)
+    frame[4 + frameIndex] = bcc2;
+    frame[4 + frameIndex + 1] = FLAG;
+
+    if (writeFrame(frame, I_FRAME_BASE_SIZE + frameIndex) < 0)
         return -1;
-    return dataSize;
+    return frameIndex;
 }

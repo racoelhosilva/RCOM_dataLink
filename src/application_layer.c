@@ -23,8 +23,8 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
     if (strcmp(role, "tx") == 0) {
         for (int i = 0; i < 5; i++) {
-            unsigned char message[27];
-            sprintf((char *)message, "Mic Test %d,%d,%d is this on?", i + 1, i + 2, i + 1);
+            unsigned char message[35];
+            sprintf((char *)message, "Mic Test %d,%d,%d is this on ~~?", i + 1, i + 2, i + 1);
 
             printf("Message to transmit: %s\n", (char *)message);
             printf("Message length: %d\n", (int)sizeof(message));
