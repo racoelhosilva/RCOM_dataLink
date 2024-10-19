@@ -97,21 +97,24 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
             printf(":%02x", byte);
             fflush(stdout);
 
-            state = nextIFrameState(state, byte, addressField, frameNumber, &xor);
+            state = nextIFrameState(state, byte, addressField, frameNumber, xor ^ prevByte);
 
-            if (state == STATE_DATA || state == STATE_DATA_ESC || state == STATE_DATA_STUFF
-                || state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF) {
-
+            if (isDataState(state)) {
                 if (dataIndex >= 0) {
                     if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF) {
-                        data[dataIndex] = prevByte == ESC2_FLAG ? FLAG : ESC;
+                        uint8_t decodedByte = prevByte == ESC2_FLAG ? FLAG : ESC;
+                        data[dataIndex] = decodedByte;
+                        xor ^= decodedByte;
+
                     } else if (state != STATE_DATA_STUFF) {
                         data[dataIndex] = prevByte;
+                        xor ^= prevByte;
                     }
                 }
 
-                if (state != STATE_DATA_STUFF)
+                if (state != STATE_DATA_STUFF) {
                     dataIndex++;
+                }
                 prevByte = byte;
 
             } else if (state != STATE_STOP) {
@@ -187,7 +190,7 @@ int writeIFrame(uint8_t addressField, uint8_t frameNumber, const uint8_t *data, 
     
     uint8_t bcc2 = 0;
     int frameIndex = 0;
-    for (int dataIndex = 0; dataIndex < dataSize; dataIndex++) {
+    for (int dataIndex = 0; dataIndex < dataSize && frameIndex < MAX_PAYLOAD_SIZE; dataIndex++) {
         bcc2 ^= data[dataIndex];
         putByte(data[dataIndex], &frameIndex, frame);
     }
