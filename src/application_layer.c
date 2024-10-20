@@ -22,7 +22,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         return;
     }
 
-    if (strcmp(role, "tx") == 0) {
+    if (connectionParameters.role == LlTx) {
         /*for (int i = 0; i < 5; i++) {
             unsigned char message[35];
             sprintf((char *)message, "Mic Test %d,%d,%d is this on ~~?", i + 1, i + 2, i + 1);
@@ -37,9 +37,11 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             }
         }*/
 
-        writeControlPacket(1, 8, "random.txt");
-        writeDataPacket(0, 8, (uint8_t *)"12345678");
-        writeControlPacket(3, 8, "random.txt");
+        writeControlPacket(1, 633, "random.txt");
+        writeDataPacket(0, 211, (uint8_t *)"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890");
+        writeDataPacket(0, 211, (uint8_t *)"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890");
+        writeDataPacket(0, 211, (uint8_t *)"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890");
+        writeControlPacket(3, 633, "random.txt");
 
     } else {
         /*unsigned char buf[MAX_PAYLOAD_SIZE] = {0};
@@ -65,10 +67,16 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         uint8_t data[MAX_DATA_PACKET_PAYLOAD_SIZE];
         int dataSize;
         uint8_t sequenceNumber;
-        dataSize = readDataPacket(&controlFieldCheck, &sequenceNumber, data);
 
-        printf("Data received: %8s\n", (char *)data);
-        printf("Data size: %d\n", dataSize);
+        uint32_t totalDataSize = 0;    
+        while (totalDataSize < filesize1) {
+            dataSize = readDataPacket(&controlFieldCheck, &sequenceNumber, data);
+
+            printf("Data received: %s\n", (char *)data);
+            printf("Data size: %d\n", dataSize);
+            
+            totalDataSize += dataSize;
+        }
 
         uint32_t filesize2;
         char filename2[MAX_FILENAME_SIZE];
@@ -79,4 +87,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         printf("File size: %d\n", filesize2);
 
     }
+
+    llclose(0);
 }

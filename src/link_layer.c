@@ -14,8 +14,7 @@
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
-int maxTries;
-int timeout;
+LinkLayer conParams;
 uint8_t frameNumber;
 
 ////////////////////////////////////////////////
@@ -23,14 +22,16 @@ uint8_t frameNumber;
 ////////////////////////////////////////////////
 int llopen(LinkLayer connectionParameters)
 {
-    const char* serialPort = connectionParameters.serialPort;
-    int baudRate = connectionParameters.baudRate;
+    conParams = connectionParameters;
+
+    const char* serialPort = conParams.serialPort;
+    int baudRate = conParams.baudRate;
     if (openSerialPort(serialPort, baudRate) < 0)
         return -1;
 
-    LinkLayerRole role = connectionParameters.role;
-    maxTries = connectionParameters.nRetransmissions;
-    timeout = connectionParameters.timeout;
+    LinkLayerRole role = conParams.role;
+    int maxTries = conParams.nRetransmissions;
+    int timeout = conParams.timeout;
     frameNumber = 0;
 
     if (role == LlTx) {
@@ -73,8 +74,12 @@ int llopen(LinkLayer connectionParameters)
 // LLWRITE
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize) {
+    int maxTries = conParams.nRetransmissions;
+    int timeout = conParams.timeout;
+
     configAlarm();
 
+    // TODO: Refactor nTries to try
     for (int nTries = 0; nTries < maxTries; nTries++) {
         stopAlarm();
         printf("Try #%d\n", nTries);
@@ -110,6 +115,8 @@ int llwrite(const unsigned char *buf, int bufSize) {
 ////////////////////////////////////////////////
 int llread(unsigned char *packet)
 {
+    int maxTries = conParams.nRetransmissions;
+
     int bytes;
     uint8_t readFrameNumber;
 
@@ -138,7 +145,46 @@ int llread(unsigned char *packet)
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
-    // TODO
+    LinkLayerRole role = conParams.role;
+    int maxTries = conParams.nRetransmissions;
+    int timeout = conParams.timeout;
+
+    if (role == LlTx) {
+        configAlarm();
+
+        for (int nTries = 0; nTries < maxTries; nTries++) {
+            stopAlarm();
+            printf("Try #%d\n", nTries);
+
+            int bytes = writeSOrUFrame(A1, DISC);
+            if (bytes < 0)
+                return -1;
+
+            resetAlarm(timeout);
+
+            int r;
+            if ((r = readKnownSOrUFrameTimeout(A1, DISC)) < 0) {
+                stopAlarm();
+                return -1;
+            }
+
+            bytes = writeSOrUFrame(A1, UA);
+            if (bytes < 0) {
+                stopAlarm();
+                return -1;
+            }
+            break;
+        }
+        stopAlarm();
+        
+    } else {
+        if (readKnownSOrUFrame(A1, DISC) < 0)
+            return -1;
+        if (writeSOrUFrame(A1, DISC) < 0)
+            return -1;
+        if (readKnownSOrUFrame(A1, UA) < 0)
+            return -1;
+    }
 
     int clstat = closeSerialPort();
     return clstat;
