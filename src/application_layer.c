@@ -5,6 +5,7 @@
 
 #include "application_layer.h"
 #include "link_layer.h"
+#include "packet.h"
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
@@ -22,7 +23,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     }
 
     if (strcmp(role, "tx") == 0) {
-        for (int i = 0; i < 5; i++) {
+        /*for (int i = 0; i < 5; i++) {
             unsigned char message[35];
             sprintf((char *)message, "Mic Test %d,%d,%d is this on ~~?", i + 1, i + 2, i + 1);
 
@@ -34,11 +35,14 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                 perror("Fail llwrite");
                 return;
             }
-        }
+        }*/
+
+        writeControlPacket(1, 8, "random.txt");
+        writeDataPacket(0, 8, (uint8_t *)"12345678");
+        writeControlPacket(3, 8, "random.txt");
 
     } else {
-        unsigned char buf[MAX_PAYLOAD_SIZE] = {0};
-        
+        /*unsigned char buf[MAX_PAYLOAD_SIZE] = {0};
         // TODO: How to know when a packet is the last?
         for (int i = 0; i < 5; i++) {
             int bytes = llread(buf);
@@ -47,6 +51,32 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
             printf("Received message: %s\n", (char *)buf);
             printf("Message length: %d\n", bytes);
-        }
+        }*/
+
+        uint8_t controlFieldCheck;
+        uint32_t filesize1;
+        char filename1[MAX_FILENAME_SIZE];
+        readControlPacket(&controlFieldCheck, &filesize1, filename1);
+
+        printf("Filename: %s\n", filename1);
+        printf("Filename size: %lu\n", strlen(filename1));
+        printf("File size: %d\n", filesize1);
+
+        uint8_t data[MAX_DATA_PACKET_PAYLOAD_SIZE];
+        int dataSize;
+        uint8_t sequenceNumber;
+        dataSize = readDataPacket(&controlFieldCheck, &sequenceNumber, data);
+
+        printf("Data received: %8s\n", (char *)data);
+        printf("Data size: %d\n", dataSize);
+
+        uint32_t filesize2;
+        char filename2[MAX_FILENAME_SIZE];
+        readControlPacket(&controlFieldCheck, &filesize2, filename2);
+
+        printf("Filename: %s\n", filename2);
+        printf("Filename size: %lu\n", strlen(filename2));
+        printf("File size: %d\n", filesize2);
+
     }
 }
