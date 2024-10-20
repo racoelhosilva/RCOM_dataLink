@@ -10,7 +10,6 @@
 #define MAX_FILENAME_SIZE (((MAX_PAYLOAD_SIZE - 4) / 2) - 5)
 #define MAX_DATA_PACKET_PAYLOAD_SIZE (((MAX_PAYLOAD_SIZE - 1) / 2) - 3)
 
-
 int readControlPacket(uint8_t* controlField, uint32_t *filesize, char *filename);
 int readDataPacket(uint8_t *controlField, uint8_t *sequenceNumber, uint8_t *packetData);
 

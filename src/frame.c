@@ -104,6 +104,10 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
             state = nextIFrameState(state, byte, addressField, frameNumber, xor);
 
             if (isDataState(state)) {
+                if (dataIndex >= MAX_PAYLOAD_SIZE) {
+                    return -2;
+                }
+
                 if (dataIndex >= 0) {
                     if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF)
                         data[dataIndex] = decodeByte(prevByte);

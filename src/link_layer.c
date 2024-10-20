@@ -123,13 +123,17 @@ int llread(unsigned char *packet)
     for (int nTries = 0; nTries < maxTries; nTries++) {
         bytes = readIFrame(A1, &readFrameNumber, packet);
 
-        if (bytes > 0 && readFrameNumber == frameNumber) {
-            int r = writeSOrUFrame(A1, RR(!frameNumber));
-            if (r < 0)
-                return -1;
+        if (bytes > 0) {
+            if (readFrameNumber == frameNumber) {
+                if (writeSOrUFrame(A1, RR(!frameNumber)) < 0)
+                    return -1;
 
-            frameNumber = !frameNumber;
-            return bytes;
+                frameNumber = !frameNumber;
+                return bytes;
+
+            } else if (writeSOrUFrame(A1, RR(frameNumber)) < 0) {
+                return -1;
+            }
 
         } else if (bytes == -2) {
             if (writeSOrUFrame(A1, REJ(frameNumber)) < 0)

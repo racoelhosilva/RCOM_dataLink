@@ -39,7 +39,8 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         uint32_t size = getFileSize(file);
 
-        writeControlPacket(1, size, filename);
+        if (writeControlPacket(1, size, filename) < 0)
+            return;
 
         uint8_t sequenceNumber = 0;
         uint16_t payloadSize = 0;
@@ -50,7 +51,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             
             int r = writeDataPacket(sequenceNumber, payloadSize, buf);
             if (r < 0) {
-                break;
+                return;
             }
             payloadSize = fread(&buf, 1, MAX_DATA_PACKET_PAYLOAD_SIZE, file);
             sequenceNumber = (sequenceNumber + 1) % 100;
@@ -60,7 +61,9 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             perror("applicationLayer");
             return;
         }
-        writeControlPacket(3, size, filename);
+
+        if (writeControlPacket(3, size, filename) < 0)
+            return;
 
     } else {
 
@@ -80,15 +83,17 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             return;
         }
 
-        uint8_t data[MAX_DATA_PACKET_PAYLOAD_SIZE];
+        uint8_t data[MAX_PAYLOAD_SIZE];
         int dataSize;
-        uint8_t sequenceNumber, sequenceNumberCheck = 0;
+        uint8_t sequenceNumber = 0, sequenceNumberCheck = 0;
         uint32_t totalDataSize = 0;    
 
         while (totalDataSize < filesize1) {
             dataSize = readDataPacket(&controlFieldCheck, &sequenceNumber, data);
-            if (dataSize < 0 || controlFieldCheck != 2 || sequenceNumber != sequenceNumberCheck)
+            if (dataSize < 0 || controlFieldCheck != 2 || sequenceNumber != sequenceNumberCheck) {
+                perror("applicationLayer");
                 return;
+            }
 
             fwrite(data, 1, dataSize, file);
             totalDataSize += dataSize;

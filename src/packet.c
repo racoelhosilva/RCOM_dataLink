@@ -6,7 +6,7 @@
 #include "link_layer.h"
 
 int readControlPacket(uint8_t* controlField, uint32_t *filesize, char *filename) {
-    uint8_t packet[BASE_CONTROL_PACKET_SIZE + MAX_FILENAME_SIZE];
+    uint8_t packet[MAX_PAYLOAD_SIZE];
     int T1, L1, T2, L2;
 
     int bytes = llread(packet);
@@ -46,6 +46,10 @@ int readControlPacket(uint8_t* controlField, uint32_t *filesize, char *filename)
     }
     
     L2 = packet[8];
+    if (L2 > MAX_FILENAME_SIZE) {
+        perror("readControlPacket");
+        return -1;
+    }
     memcpy(filename, packet + 9, L2);
     filename[L2] = '\0';
 
@@ -57,7 +61,7 @@ uint8_t fromBcd(uint8_t num) {
 }
 
 int readDataPacket(uint8_t *controlField, uint8_t *sequenceNumber, uint8_t *packetData) {
-    uint8_t packet[BASE_DATA_PACKET_SIZE + MAX_DATA_PACKET_PAYLOAD_SIZE];
+    uint8_t packet[MAX_PAYLOAD_SIZE];
 
     int bytes = llread(packet);
     if (bytes < 0)
@@ -72,7 +76,11 @@ int readDataPacket(uint8_t *controlField, uint8_t *sequenceNumber, uint8_t *pack
     *sequenceNumber = fromBcd(packet[1]);
     
     uint16_t packetDataSize = (packet[2] << 8) + packet[3];
-    printf("Packet Data Size: %d\n", packetDataSize);
+    if (packetDataSize > MAX_DATA_PACKET_PAYLOAD_SIZE) {
+        perror("readDataPacket");
+        return -1;
+    }
+
     memcpy(packetData, packet + 4, packetDataSize);
     
     return packetDataSize;
@@ -110,6 +118,7 @@ uint8_t toBcd(uint8_t num) {
 
 int writeDataPacket(uint8_t sequenceNumber, uint16_t packetDataSize, const uint8_t *packetData) {
     if (packetDataSize > MAX_DATA_PACKET_PAYLOAD_SIZE) {
+        perror("llwrite");
         return -1;
     }
 
