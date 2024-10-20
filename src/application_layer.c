@@ -53,6 +53,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             if (r < 0) {
                 return;
             }
+
             payloadSize = fread(&buf, 1, MAX_DATA_PACKET_PAYLOAD_SIZE, file);
             sequenceNumber = (sequenceNumber + 1) % 100;
         }
@@ -94,6 +95,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
                 perror("applicationLayer");
                 return;
             }
+            printf("Bytes received: %d\n", dataSize);
 
             fwrite(data, 1, dataSize, file);
             totalDataSize += dataSize;

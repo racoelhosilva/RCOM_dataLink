@@ -5,10 +5,10 @@
 
 #include "link_layer.h"
 
-#define BASE_CONTROL_PACKET_SIZE 9
-#define BASE_DATA_PACKET_SIZE 4
-#define MAX_FILENAME_SIZE (((MAX_PAYLOAD_SIZE - 4) / 2) - 5)
-#define MAX_DATA_PACKET_PAYLOAD_SIZE (((MAX_PAYLOAD_SIZE - 1) / 2) - 3)
+#define BASE_CONTROL_PACKET_SIZE     9
+#define BASE_DATA_PACKET_SIZE        4
+#define MAX_FILENAME_SIZE            (MAX_PAYLOAD_SIZE - BASE_CONTROL_PACKET_SIZE)
+#define MAX_DATA_PACKET_PAYLOAD_SIZE (MAX_PAYLOAD_SIZE - BASE_DATA_PACKET_SIZE)
 
 int readControlPacket(uint8_t* controlField, uint32_t *filesize, char *filename);
 int readDataPacket(uint8_t *controlField, uint8_t *sequenceNumber, uint8_t *packetData);

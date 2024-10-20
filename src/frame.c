@@ -104,15 +104,16 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
             state = nextIFrameState(state, byte, addressField, frameNumber, xor);
 
             if (isDataState(state)) {
-                if (dataIndex >= MAX_PAYLOAD_SIZE) {
-                    return -2;
-                }
-
                 if (dataIndex >= 0) {
-                    if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF)
+                    if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF) {
+                        if (dataIndex >= MAX_PAYLOAD_SIZE)
+                            return -2;
                         data[dataIndex] = decodeByte(prevByte);
-                    else if (state != STATE_DATA_STUFF)
+                    } else if (state != STATE_DATA_STUFF) {
+                        if (dataIndex >= MAX_PAYLOAD_SIZE)
+                            return -2;
                         data[dataIndex] = prevByte;
+                    }
                 }
 
                 if (state == STATE_DATA_STUFF) {
@@ -170,7 +171,7 @@ int writeSOrUFrame(uint8_t addressField, uint8_t controlField) {
 
 int putByte(uint8_t byte, int *index, uint8_t *frame) {
     if (byte == FLAG) {
-        if (*index + 1 >= MAX_PAYLOAD_SIZE)
+        if (*index + 1 >= 2 * MAX_PAYLOAD_SIZE)
             return -1;
 
         frame[4 + *index] = ESC;
@@ -181,7 +182,7 @@ int putByte(uint8_t byte, int *index, uint8_t *frame) {
     }
     
     if (byte == ESC) {
-        if (*index + 1 >= MAX_PAYLOAD_SIZE)
+        if (*index + 1 >= 2 * MAX_PAYLOAD_SIZE)
             return -1;
 
         frame[4 + *index] = ESC;
@@ -198,7 +199,7 @@ int putByte(uint8_t byte, int *index, uint8_t *frame) {
 }
 
 int writeIFrame(uint8_t addressField, uint8_t frameNumber, const uint8_t *data, int dataSize) {
-    uint8_t frame[I_FRAME_BASE_SIZE + MAX_PAYLOAD_SIZE + MAX_BCC2_SIZE];
+    uint8_t frame[I_FRAME_BASE_SIZE + 2 * (MAX_PAYLOAD_SIZE + 1)];  // Payload and BCC2 can be byte stuffed
 
     frame[0] = FLAG;
     frame[1] = addressField;
@@ -207,7 +208,7 @@ int writeIFrame(uint8_t addressField, uint8_t frameNumber, const uint8_t *data, 
     
     uint8_t bcc2 = 0;
     int frameIndex = 0;
-    for (int dataIndex = 0; dataIndex < dataSize && frameIndex < MAX_PAYLOAD_SIZE; dataIndex++) {
+    for (int dataIndex = 0; dataIndex < dataSize && frameIndex < 2 * MAX_PAYLOAD_SIZE; dataIndex++) {
         bcc2 ^= data[dataIndex];
         putByte(data[dataIndex], &frameIndex, frame);
     }
