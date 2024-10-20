@@ -6,7 +6,8 @@
 #include "alarm.h"
 
 #define SU_FRAME_SIZE     5
-#define I_FRAME_BASE_SIZE 6
+#define I_FRAME_BASE_SIZE 5
+#define MAX_BCC2_SIZE     2
 
 int readKnownSOrUFrame(uint8_t addressField, uint8_t controlField);
 int readKnownSOrUFrameTimeout(uint8_t addressField, uint8_t controlField);

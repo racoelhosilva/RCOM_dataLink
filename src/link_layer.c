@@ -122,6 +122,7 @@ int llread(unsigned char *packet)
 
     for (int nTries = 0; nTries < maxTries; nTries++) {
         bytes = readIFrame(A1, &readFrameNumber, packet);
+
         if (bytes > 0 && readFrameNumber == frameNumber) {
             int r = writeSOrUFrame(A1, RR(!frameNumber));
             if (r < 0)
@@ -130,9 +131,22 @@ int llread(unsigned char *packet)
             frameNumber = !frameNumber;
             return bytes;
 
-        } else if (bytes == 0) {
+        } else if (bytes == -2) {
             if (writeSOrUFrame(A1, REJ(frameNumber)) < 0)
                 return -1;
+
+        } else if (bytes == -3) {
+            if (writeSOrUFrame(A1, UA) < 0)
+                return -1;
+
+        } else if (bytes == -4) {
+            if (writeSOrUFrame(A1, DISC) < 0)
+                return -1;
+            if (readKnownSOrUFrame(A1, UA) < 0)
+                return -1;
+
+            perror("llread");
+            return -1;
         }
     }
 

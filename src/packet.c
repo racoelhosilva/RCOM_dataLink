@@ -36,7 +36,7 @@ int readControlPacket(uint8_t* controlField, uint32_t *filesize, char *filename)
         return -1;
     }
 
-    memcpy(filesize, packet + 3, 4);
+    *filesize = (packet[3] << 24) + (packet[4] << 16) + (packet[5] << 8) + packet[6];
 
     // TLV for File Name
     T2 = packet[7];
@@ -72,54 +72,54 @@ int readDataPacket(uint8_t *controlField, uint8_t *sequenceNumber, uint8_t *pack
     *sequenceNumber = fromBcd(packet[1]);
     
     uint16_t packetDataSize = (packet[2] << 8) + packet[3];
+    printf("Packet Data Size: %d\n", packetDataSize);
     memcpy(packetData, packet + 4, packetDataSize);
     
     return packetDataSize;
 }
 
-int writeControlPacket(uint8_t controlField, uint32_t filesize, char *filename) {
+int writeControlPacket(uint8_t controlField, uint32_t filesize, const char *filename) {
     int filenameSize = strlen(filename);
     if (filenameSize > MAX_FILENAME_SIZE) {
         return -1;
     }
 
-    uint32_t bufSize = 1 + 1 + 1 + 4 + 1 + 1 + filenameSize;
-    uint8_t buf[bufSize];
+    uint8_t buf[BASE_CONTROL_PACKET_SIZE + MAX_FILENAME_SIZE];
 
     buf[0] = controlField;
 
     // TLV for file size
     buf[1] = 0;
     buf[2] = 4;
-    memcpy(buf + 3, &filesize, 4);
+    buf[3] = (filesize >> 24) & 0xFF;
+    buf[4] = (filesize >> 16) & 0xFF;
+    buf[5] = (filesize >> 8) & 0xFF;
+    buf[6] = (filesize) & 0xFF;
 
     // TLV for file name
     buf[7] = 1;
     buf[8] = filenameSize;
     memcpy(buf + 9, filename, filenameSize);
 
-    return llwrite(buf, bufSize);
+    return llwrite(buf, BASE_CONTROL_PACKET_SIZE + filenameSize);
 }
 
 uint8_t toBcd(uint8_t num) {
     return ((num / 10) << 4) + (num % 10);
 }
 
-int writeDataPacket(uint8_t sequenceNumber, uint16_t packetDataSize, uint8_t *packetData) {
+int writeDataPacket(uint8_t sequenceNumber, uint16_t packetDataSize, const uint8_t *packetData) {
     if (packetDataSize > MAX_DATA_PACKET_PAYLOAD_SIZE) {
         return -1;
     }
 
-    uint32_t bufSize = 1 + 1 + 2 + packetDataSize;
-    uint8_t buf[bufSize];
-    uint32_t index = 0;
+    uint8_t buf[BASE_DATA_PACKET_SIZE + MAX_DATA_PACKET_PAYLOAD_SIZE];
 
-    buf[index++] = 2;
-    buf[index++] = toBcd(sequenceNumber);
-    buf[index++] = (packetDataSize >> 8) & 0xFF;
-    buf[index++] = (packetDataSize) & 0xFF;
-    
-    memcpy(buf + index, packetData, packetDataSize);
+    buf[0] = 2;
+    buf[1] = toBcd(sequenceNumber);
+    buf[2] = (packetDataSize >> 8) & 0xFF;
+    buf[3] = (packetDataSize) & 0xFF;
+    memcpy(buf + 4, packetData, packetDataSize);
 
-    return llwrite(buf, bufSize);
+    return llwrite(buf, BASE_DATA_PACKET_SIZE + packetDataSize);
 }

@@ -127,6 +127,10 @@ State nextIFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *
         } else if (byte == C(1)) {
             *frameNumber = 1;
             state = STATE_C_RCV;
+        } else if (byte == SET) {
+            state = STATE_SET_C_RCV;
+        } else if (byte == DISC) {
+            state = STATE_DISC_C_RCV;
         } else if (byte == FLAG) {
             state = STATE_FLAG_RCV;
         } else {
@@ -143,8 +147,40 @@ State nextIFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *
             state = STATE_START;
         break;
 
+      case STATE_SET_C_RCV:
+        if (byte == (addressField ^ SET))
+            state = STATE_SET_BCC1_OK;
+        else if (byte == FLAG)
+            state = STATE_FLAG_RCV;
+        else 
+            state = STATE_START;
+        break;
+    
+      case STATE_DISC_C_RCV:
+        if (byte == (addressField ^ DISC))
+            state = STATE_DISC_BCC1_OK;
+        else if (byte == FLAG)
+            state = STATE_FLAG_RCV;
+        else 
+            state = STATE_START;
+        break;
+
       case STATE_BCC1_OK:
         state = STATE_DATA;
+        break;
+        
+      case STATE_SET_BCC1_OK:
+        if (byte == FLAG)
+            state = STATE_STOP_SET;
+        else
+            state = STATE_START;
+        break;
+
+      case STATE_DISC_BCC1_OK:
+        if (byte == DISC)
+            state = STATE_STOP_DISC;
+        else 
+            state = STATE_START;
         break;
 
         // TODO: Pass XOR processing to readIFrame
@@ -175,6 +211,8 @@ State nextIFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *
       case STATE_DATA_STUFF:
         if (byte == ESC) {
             state = STATE_DATA_ESC_WRT_STUFF;
+        } else if (byte == FLAG) {
+            state = xor == 0 ? STATE_STOP : STATE_BCC2_BAD;
         } else {
             state = STATE_DATA_WRT_STUFF;
         }

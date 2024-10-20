@@ -77,6 +77,10 @@ int readSOrUFrameTimeout(uint8_t addressField, uint8_t *controlField) {
     return alarmStatus.enabled ? 1 : 0;
 }
 
+uint8_t decodeByte(uint8_t byte) {
+    return byte == ESC2_FLAG ? FLAG : ESC;
+}
+
 int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
     State state = STATE_START;
     uint8_t xor = 0;
@@ -87,7 +91,7 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
 
     uint8_t byte;
     uint8_t prevByte;
-    while (state != STATE_STOP && state != STATE_BCC2_BAD) {
+    while (state != STATE_STOP && state != STATE_BCC2_BAD && state != STATE_STOP_SET && state != STATE_STOP_DISC) {
         int r = readByteSerialPort(&byte);
         if (r < 0)
             return -1;
@@ -97,24 +101,25 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
             printf(":%02x", byte);
             fflush(stdout);
 
-            state = nextIFrameState(state, byte, addressField, frameNumber, xor ^ prevByte);
+            state = nextIFrameState(state, byte, addressField, frameNumber, xor);
 
             if (isDataState(state)) {
                 if (dataIndex >= 0) {
-                    if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF) {
-                        uint8_t decodedByte = prevByte == ESC2_FLAG ? FLAG : ESC;
-                        data[dataIndex] = decodedByte;
-                        xor ^= decodedByte;
-
-                    } else if (state != STATE_DATA_STUFF) {
+                    if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF)
+                        data[dataIndex] = decodeByte(prevByte);
+                    else if (state != STATE_DATA_STUFF)
                         data[dataIndex] = prevByte;
-                        xor ^= prevByte;
-                    }
                 }
 
-                if (state != STATE_DATA_STUFF) {
+                if (state == STATE_DATA_STUFF) {
+                    xor ^= decodeByte(byte);
+                } else if (state == STATE_DATA || state == STATE_DATA_WRT_STUFF) {
+                    xor ^= byte;
+                    dataIndex++;
+                } else {  // STATE_DATA_ESC and STATE_DATA_ESC_WRT_STUFF
                     dataIndex++;
                 }
+
                 prevByte = byte;
 
             } else if (state != STATE_STOP) {
@@ -124,7 +129,15 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
     }
 
     printf(": %d bytes\n", totalBytes);
-    return state == STATE_BCC2_BAD ? 0 : dataIndex;
+
+    if (state == STATE_BCC2_BAD)
+        return -2;
+    if (state == STATE_STOP_SET)
+        return -3;
+    if (state == STATE_STOP_DISC)
+        return -4;
+
+    return dataIndex;
 }
 
 
@@ -181,7 +194,7 @@ int putByte(uint8_t byte, int *index, uint8_t *frame) {
 }
 
 int writeIFrame(uint8_t addressField, uint8_t frameNumber, const uint8_t *data, int dataSize) {
-    uint8_t frame[I_FRAME_BASE_SIZE + MAX_PAYLOAD_SIZE];
+    uint8_t frame[I_FRAME_BASE_SIZE + MAX_PAYLOAD_SIZE + MAX_BCC2_SIZE];
 
     frame[0] = FLAG;
     frame[1] = addressField;
@@ -195,10 +208,11 @@ int writeIFrame(uint8_t addressField, uint8_t frameNumber, const uint8_t *data, 
         putByte(data[dataIndex], &frameIndex, frame);
     }
 
-    frame[4 + frameIndex] = bcc2;
-    frame[4 + frameIndex + 1] = FLAG;
+    int bccSize = 0;
+    putByte(bcc2, &bccSize, frame + frameIndex);
+    frame[4 + frameIndex + bccSize] = FLAG;
 
-    if (writeFrame(frame, I_FRAME_BASE_SIZE + frameIndex) < 0)
+    if (writeFrame(frame, I_FRAME_BASE_SIZE + frameIndex + bccSize) < 0)
         return -1;
     return frameIndex;
 }

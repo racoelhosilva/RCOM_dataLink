@@ -7,6 +7,13 @@
 #include "link_layer.h"
 #include "packet.h"
 
+uint32_t getFileSize(FILE *file) {
+    fseek(file, 0, SEEK_END);
+    uint32_t size = ftell(file);
+    rewind(file);
+    return size;
+}
+
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename)
 {
@@ -23,69 +30,81 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     }
 
     if (connectionParameters.role == LlTx) {
-        /*for (int i = 0; i < 5; i++) {
-            unsigned char message[35];
-            sprintf((char *)message, "Mic Test %d,%d,%d is this on ~~?", i + 1, i + 2, i + 1);
+        
+        FILE *file = fopen(filename, "r");
+        if (file == NULL) {
+            perror("applicationLayer");
+            return;
+        }
 
-            printf("Message to transmit: %s\n", (char *)message);
-            printf("Message length: %d\n", (int)sizeof(message));
+        uint32_t size = getFileSize(file);
 
-            int r = llwrite(message, sizeof(message));
-            if (r < 0){
-                perror("Fail llwrite");
-                return;
+        writeControlPacket(1, size, filename);
+
+        uint8_t sequenceNumber = 0;
+        uint16_t payloadSize = 0;
+        uint8_t buf[MAX_DATA_PACKET_PAYLOAD_SIZE];
+
+        payloadSize = fread(&buf, 1, MAX_DATA_PACKET_PAYLOAD_SIZE, file);
+        while (payloadSize > 0) {
+            
+            int r = writeDataPacket(sequenceNumber, payloadSize, buf);
+            if (r < 0) {
+                break;
             }
-        }*/
-
-        writeControlPacket(1, 633, "random.txt");
-        writeDataPacket(0, 211, (uint8_t *)"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890");
-        writeDataPacket(0, 211, (uint8_t *)"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890");
-        writeDataPacket(0, 211, (uint8_t *)"123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890");
-        writeControlPacket(3, 633, "random.txt");
+            payloadSize = fread(&buf, 1, MAX_DATA_PACKET_PAYLOAD_SIZE, file);
+            sequenceNumber = (sequenceNumber + 1) % 100;
+        }
+        
+        if (fclose(file)) {
+            perror("applicationLayer");
+            return;
+        }
+        writeControlPacket(3, size, filename);
 
     } else {
-        /*unsigned char buf[MAX_PAYLOAD_SIZE] = {0};
-        // TODO: How to know when a packet is the last?
-        for (int i = 0; i < 5; i++) {
-            int bytes = llread(buf);
-            if (bytes < 0)
-                return;
 
-            printf("Received message: %s\n", (char *)buf);
-            printf("Message length: %d\n", bytes);
-        }*/
+        FILE *file = fopen(filename, "w");
+        if (file == NULL) {
+            perror("applicationLayer");
+            return;
+        }
 
         uint8_t controlFieldCheck;
         uint32_t filesize1;
-        char filename1[MAX_FILENAME_SIZE];
+        char filename1[MAX_FILENAME_SIZE + 1];
         readControlPacket(&controlFieldCheck, &filesize1, filename1);
 
-        printf("Filename: %s\n", filename1);
-        printf("Filename size: %lu\n", strlen(filename1));
-        printf("File size: %d\n", filesize1);
+        if (controlFieldCheck != 1) {
+            perror("applicationLayer");
+            return;
+        }
 
         uint8_t data[MAX_DATA_PACKET_PAYLOAD_SIZE];
         int dataSize;
-        uint8_t sequenceNumber;
-
+        uint8_t sequenceNumber, sequenceNumberCheck = 0;
         uint32_t totalDataSize = 0;    
+
         while (totalDataSize < filesize1) {
             dataSize = readDataPacket(&controlFieldCheck, &sequenceNumber, data);
+            if (dataSize < 0 || controlFieldCheck != 2 || sequenceNumber != sequenceNumberCheck)
+                return;
 
-            printf("Data received: %s\n", (char *)data);
-            printf("Data size: %d\n", dataSize);
-            
+            fwrite(data, 1, dataSize, file);
             totalDataSize += dataSize;
+            sequenceNumberCheck = (sequenceNumberCheck + 1) % 100;
         }
 
         uint32_t filesize2;
-        char filename2[MAX_FILENAME_SIZE];
+        char filename2[MAX_FILENAME_SIZE + 1];
         readControlPacket(&controlFieldCheck, &filesize2, filename2);
 
-        printf("Filename: %s\n", filename2);
-        printf("Filename size: %lu\n", strlen(filename2));
-        printf("File size: %d\n", filesize2);
+        if (controlFieldCheck != 3 || filesize1 != filesize2 || strcmp(filename1, filename2) != 0) {
+            perror("applicationLayer");
+            return;
+        }
 
+        fclose(file);
     }
 
     llclose(0);
