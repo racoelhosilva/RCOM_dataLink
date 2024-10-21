@@ -144,9 +144,9 @@ int llread(unsigned char *packet)
                 return -1;
 
         } else if (bytes == -4) {
-            if (writeSOrUFrame(A1, DISC) < 0)
+            if (writeSOrUFrame(A2, DISC) < 0)
                 return -1;
-            if (readKnownSOrUFrame(A1, UA) < 0)
+            if (readKnownSOrUFrame(A2, UA) < 0)
                 return -1;
 
             perror("llread");
@@ -181,12 +181,12 @@ int llclose(int showStatistics)
             resetAlarm(timeout);
 
             int r;
-            if ((r = readKnownSOrUFrameTimeout(A1, DISC)) < 0) {
+            if ((r = readKnownSOrUFrameTimeout(A2, DISC)) < 0) {
                 stopAlarm();
                 return -1;
             }
 
-            bytes = writeSOrUFrame(A1, UA);
+            bytes = writeSOrUFrame(A2, UA);
             if (bytes < 0) {
                 stopAlarm();
                 return -1;
@@ -198,9 +198,10 @@ int llclose(int showStatistics)
     } else {
         if (readKnownSOrUFrame(A1, DISC) < 0)
             return -1;
-        if (writeSOrUFrame(A1, DISC) < 0)
+        // TODO: Is it A1 or A2
+        if (writeSOrUFrame(A2, DISC) < 0)
             return -1;
-        if (readKnownSOrUFrame(A1, UA) < 0)
+        if (readKnownSOrUFrame(A2, UA) < 0)
             return -1;
     }
 
