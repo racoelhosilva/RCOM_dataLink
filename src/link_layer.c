@@ -14,6 +14,7 @@
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
 
+int connectionOpen;
 LinkLayer conParams;
 uint8_t frameNumber;
 
@@ -22,6 +23,8 @@ uint8_t frameNumber;
 ////////////////////////////////////////////////
 int llopen(LinkLayer connectionParameters)
 {
+    if (connectionOpen)
+        return -1;
     conParams = connectionParameters;
 
     const char* serialPort = conParams.serialPort;
@@ -44,19 +47,21 @@ int llopen(LinkLayer connectionParameters)
                 return -1;
 
             resetAlarm(timeout);
-
-            // Wait until all bytes have been written to the serial port
-            // sleep(1);  // TODO: Is this to be removed?
-
-            // TODO: Respond to DISC
+            
             uint8_t controlField;
             int r;
-            while (TRUE) {
+            do {
                 r = readSOrUFrame(A1, &controlField, TRUE);
-                if (r < 0 || (r > 0 && controlField == UA)) {
+                if (r < 0) {
                     stopAlarm();
-                    return r;
+                    return -1;
                 }
+            } while (r > 0 && controlField != UA);
+
+            if (r > 0) {
+                stopAlarm();
+                connectionOpen = TRUE;
+                return 1;
             }
 
             printf("Try #%d\n", alarmStatus.count);
@@ -73,7 +78,11 @@ int llopen(LinkLayer connectionParameters)
                 return -1;
 
             if (controlField == SET) {
-                return writeSOrUFrame(A1, UA);
+                if (writeSOrUFrame(A1, UA) < 0)
+                    return -1;
+                
+                connectionOpen = TRUE;
+                return 1;
             }
             if (controlField == DISC) {
                 if (writeSOrUFrame(A1, DISC) < 0)
@@ -84,6 +93,7 @@ int llopen(LinkLayer connectionParameters)
                         return -1;
                 } while (controlField != UA);
 
+                connectionOpen = FALSE;
                 return -1;
             }
         }
@@ -94,6 +104,11 @@ int llopen(LinkLayer connectionParameters)
 // LLWRITE
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize) {
+    if (!connectionOpen || conParams.role != LlTx)
+        return -1;
+    if (buf == NULL)
+        return -1;
+
     int maxTries = conParams.nRetransmissions;
     int timeout = conParams.timeout;
 
@@ -141,6 +156,11 @@ int llwrite(const unsigned char *buf, int bufSize) {
 // LLREAD
 ////////////////////////////////////////////////
 int llread(unsigned char *packet) {
+    if (!connectionOpen || conParams.role != LlRx)
+        return -1;
+    if (packet == NULL)
+        return -1;
+
     int bytes;
     uint8_t readFrameNumber;
 
@@ -160,7 +180,7 @@ int llread(unsigned char *packet) {
             }
 
         } else if (bytes == -2) {  // Data error
-            if (writeSOrUFrame(A1, REJ(frameNumber)) < 0)
+            if (writeSOrUFrame(A1, readFrameNumber == frameNumber ? REJ(frameNumber) : RR(frameNumber)) < 0)
                 return -1;
 
         } else if (bytes == -3) {  // SET received
@@ -178,6 +198,7 @@ int llread(unsigned char *packet) {
             } while (controlField != UA);
 
             perror("llread");
+            connectionOpen = FALSE;
             return -1;
         }
     }
@@ -191,6 +212,9 @@ int llread(unsigned char *packet) {
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
+    if (!connectionOpen)
+        return -1;
+
     LinkLayerRole role = conParams.role;
     int maxTries = conParams.nRetransmissions;
     int timeout = conParams.timeout;
@@ -246,6 +270,7 @@ int llclose(int showStatistics)
         } while (controlField != UA);
     }
 
+    connectionOpen = FALSE;
     int clstat = closeSerialPort();
     return clstat;
 }
