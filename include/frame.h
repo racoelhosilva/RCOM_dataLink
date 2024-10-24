@@ -9,9 +9,7 @@
 #define I_FRAME_BASE_SIZE 5
 #define MAX_BCC2_SIZE     2
 
-int readKnownSOrUFrame(uint8_t addressField, uint8_t controlField);
-int readKnownSOrUFrameTimeout(uint8_t addressField, uint8_t controlField);
-int readSOrUFrameTimeout(uint8_t addressField, uint8_t *controlField);
+int readSOrUFrame(uint8_t addressField, uint8_t *controlField, int timeout);
 int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data);
 
 int writeSOrUFrame(uint8_t addressField, uint8_t controlField);

@@ -6,53 +6,6 @@ int isDataState(State state) {
         || state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF;
 }
 
-State nextKnownSOrUFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t controlField)
-{
-    switch (state) {
-      case STATE_START:
-        if (byte == FLAG)
-            state = STATE_FLAG_RCV;
-        break;
-
-      case STATE_FLAG_RCV:
-        if (byte == addressField)
-            state = STATE_A_RCV;
-        else if (byte != FLAG)
-            state = STATE_START;
-        break;
-
-      case STATE_A_RCV:
-        if (byte == controlField)
-            state = STATE_C_RCV;
-        else if (byte == FLAG)
-            state = STATE_FLAG_RCV;
-        else
-            state = STATE_START;
-        break;
-
-      case STATE_C_RCV:
-        if (byte == (addressField ^ controlField))
-            state = STATE_BCC1_OK;
-        else if (byte == FLAG)
-            state = STATE_FLAG_RCV;
-        else
-            state = STATE_START;
-        break;
-
-      case STATE_BCC1_OK:
-        if (byte == FLAG)
-            state = STATE_STOP;
-        else
-            state = STATE_START;
-        break;
-
-      default:
-        break;
-    }
-
-    return state;
-}
-
 int isValidSOrUFrameControl(uint8_t byte) {
     return byte == SET || byte == UA || byte == RR(0) || byte == RR(1) || byte == REJ(0) || byte == REJ(1) || byte == DISC;
 }
@@ -183,7 +136,6 @@ State nextIFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *
             state = STATE_START;
         break;
 
-        // TODO: Pass XOR processing to readIFrame
       case STATE_DATA:
       case STATE_DATA_WRT_STUFF:
         if (byte == FLAG)

@@ -49,10 +49,14 @@ int llopen(LinkLayer connectionParameters)
             // sleep(1);  // TODO: Is this to be removed?
 
             // TODO: Respond to DISC
-            int r = readKnownSOrUFrameTimeout(A1, UA);
-            if (r != 0) {
-                stopAlarm();
-                return r;
+            uint8_t controlField;
+            int r;
+            while (TRUE) {
+                r = readSOrUFrame(A1, &controlField, TRUE);
+                if (r < 0 || (r > 0 && controlField == UA)) {
+                    stopAlarm();
+                    return r;
+                }
             }
 
             printf("Try #%d\n", alarmStatus.count);
@@ -63,13 +67,27 @@ int llopen(LinkLayer connectionParameters)
         return -1;
 
     } else {
-        if (readKnownSOrUFrame(A1, SET) < 0)
-            return -1;
-        if (writeSOrUFrame(A1, UA) < 0)
-            return -1;
-    }
+        uint8_t controlField;
+        while (TRUE) {
+            if (readSOrUFrame(A1, &controlField, FALSE) < 0)
+                return -1;
 
-    return 1;
+            if (controlField == SET) {
+                return writeSOrUFrame(A1, UA);
+            }
+            if (controlField == DISC) {
+                if (writeSOrUFrame(A1, DISC) < 0)
+                    return -1;
+
+                do {
+                    if (readSOrUFrame(A1, &controlField, FALSE) < 0)
+                        return -1;
+                } while (controlField != UA);
+
+                return -1;
+            }
+        }
+    }
 }
 
 ////////////////////////////////////////////////
@@ -88,21 +106,19 @@ int llwrite(const unsigned char *buf, int bufSize) {
 
         resetAlarm(timeout);
 
-        uint8_t controlField = 0;
-        int r = readSOrUFrameTimeout(A1, &controlField);
-        if (r < 0) {
-            stopAlarm();
-            return -1;
-        }
-
-        if (r > 0) {
-            int badControlField = controlField != RR(0) && controlField != RR(1) && controlField != REJ(frameNumber);
-            if (badControlField) {
-                alarmStatus.count = 0;
+        uint8_t controlField;
+        int r, badControlField;
+        do {
+            r = readSOrUFrame(A1, &controlField, TRUE);
+            if (r < 0) {
                 stopAlarm();
-                continue;
+                return -1;
             }
 
+            badControlField = controlField != RR(0) && controlField != RR(1) && controlField != REJ(frameNumber);
+        } while (r > 0 && badControlField);
+
+        if (r > 0) {
             if (controlField == RR(!frameNumber)) {
                 frameNumber = !frameNumber;
                 stopAlarm();
@@ -143,19 +159,23 @@ int llread(unsigned char *packet) {
                 return -1;
             }
 
-        } else if (bytes == -2) {
+        } else if (bytes == -2) {  // Data error
             if (writeSOrUFrame(A1, REJ(frameNumber)) < 0)
                 return -1;
 
-        } else if (bytes == -3) {
+        } else if (bytes == -3) {  // SET received
             if (writeSOrUFrame(A1, UA) < 0)
                 return -1;
 
-        } else if (bytes == -4) {
-            if (writeSOrUFrame(A2, DISC) < 0)
+        } else if (bytes == -4) {  // DISC received
+            uint8_t controlField;
+            if (writeSOrUFrame(A1, DISC) < 0)
                 return -1;
-            if (readKnownSOrUFrame(A2, UA) < 0)
-                return -1;
+
+            do {
+                if (readSOrUFrame(A1, &controlField, FALSE) < 0)
+                    return -1;
+            } while (controlField != UA);
 
             perror("llread");
             return -1;
@@ -187,11 +207,14 @@ int llclose(int showStatistics)
 
             resetAlarm(timeout);
 
-            int r = readKnownSOrUFrameTimeout(A1, DISC);
-            if (r < 0) {
-                stopAlarm();
-                return -1;
-            }
+            uint8_t controlField;
+            int r;
+            do {
+                if ((r = readSOrUFrame(A1, &controlField, TRUE)) < 0) {
+                    stopAlarm();
+                    return -1;
+                }
+            } while (r > 0 && controlField != DISC);
             
             if (r == 0) {
                 printf("Try #%d\n", alarmStatus.count);
@@ -208,12 +231,19 @@ int llclose(int showStatistics)
         stopAlarm();
         
     } else {
-        if (readKnownSOrUFrame(A1, DISC) < 0)
-            return -1;
+        uint8_t controlField;
+        do {
+            if (readSOrUFrame(A1, &controlField, FALSE) < 0)
+                return -1;
+        } while (controlField != DISC);
+
         if (writeSOrUFrame(A1, DISC) < 0)
-            return -1;
-        if (readKnownSOrUFrame(A1, UA) < 0)
-            return -1;
+            return 1;
+
+        do {
+            if (readSOrUFrame(A1, &controlField, FALSE) < 0)
+                return -1;
+        } while (controlField != UA);
     }
 
     int clstat = closeSerialPort();

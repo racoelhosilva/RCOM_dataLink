@@ -7,59 +7,12 @@
 #include "special_bytes.h"
 #include "link_layer.h"
 
-int readKnownSOrUFrame(uint8_t addressField, uint8_t controlField) {
+int readSOrUFrame(uint8_t addressField, uint8_t *controlField, int timeout) {
     State state = STATE_START;
     int totalBytes = 0;
 
     printf("Read  <- ");
-    while (state != STATE_STOP) {
-        uint8_t byte;
-        int r = readByteSerialPort(&byte);
-        if (r < 0)
-            return -1;
-
-        if (r == 1) {
-            totalBytes++;
-            printf(":%02x", byte);
-
-            state = nextKnownSOrUFrameState(state, byte, addressField, controlField);
-        }
-    }
-
-    printf(": %d bytes\n", totalBytes);
-    return 1;
-}
-
-int readKnownSOrUFrameTimeout(uint8_t addressField, uint8_t controlField) {
-    State state = STATE_START;
-    int totalBytes = 0;
-
-    printf("Read  <- ");
-    while (state != STATE_STOP && alarmStatus.enabled) {
-        uint8_t byte;
-        int r = readByteSerialPort(&byte);
-        if (r < 0)
-            return -1;
-
-        if (r == 1) {
-            totalBytes++;
-            printf(":%02x", byte);
-            fflush(stdout);
-
-            state = nextKnownSOrUFrameState(state, byte, addressField, controlField);
-        }
-    }
-
-    printf(": %d bytes\n", totalBytes);
-    return alarmStatus.enabled ? 1 : 0;
-}
-
-int readSOrUFrameTimeout(uint8_t addressField, uint8_t *controlField) {
-    State state = STATE_START;
-    int totalBytes = 0;
-
-    printf("Read  <- ");
-    while (state != STATE_STOP && alarmStatus.enabled) {
+    while (state != STATE_STOP && (!timeout || alarmStatus.enabled)) {
         uint8_t byte;
         int r = readByteSerialPort(&byte);
         if (r < 0)
@@ -74,7 +27,7 @@ int readSOrUFrameTimeout(uint8_t addressField, uint8_t *controlField) {
     }
 
     printf(": %d bytes\n", totalBytes);
-    return alarmStatus.enabled ? 1 : 0;
+    return !timeout || alarmStatus.enabled ? 1 : 0;
 }
 
 uint8_t decodeByte(uint8_t byte) {
@@ -136,7 +89,7 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
     printf(": %d bytes\n", totalBytes);
 
     if (state == STATE_BCC2_BAD || state == STATE_STUFF_BAD)
-        return -2;
+        return -2;  // Data error
     if (state == STATE_STOP_SET)
         return -3;
     if (state == STATE_STOP_DISC)

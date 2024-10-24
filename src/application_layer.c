@@ -41,7 +41,7 @@ int receiveFile(FILE* file, uint32_t filesize) {
 
     while (totalDataSize < filesize) {
         dataSize = readDataPacket(&controlFieldCheck, &sequenceNumber, data);
-        if (dataSize < 0 || controlFieldCheck != 2 || sequenceNumber != sequenceNumberCheck) {
+        if (dataSize < 0 || controlFieldCheck != CF_DATA || sequenceNumber != sequenceNumberCheck) {
             perror("applicationLayer");
             return -1;
         }
@@ -78,7 +78,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         uint32_t size = getFileSize(file);
 
-        if (writeControlPacket(1, size, filename) < 0)
+        if (writeControlPacket(CF_START, size, filename) < 0)
             return;
 
         if (sendFile(file) < 0) {
@@ -90,7 +90,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
             return;
         }
 
-        if (writeControlPacket(3, size, filename) < 0)
+        if (writeControlPacket(CF_END, size, filename) < 0)
             return;
 
     } else {
@@ -106,7 +106,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         char filename1[MAX_FILENAME_SIZE + 1];
         readControlPacket(&controlFieldCheck, &filesize1, filename1);
 
-        if (controlFieldCheck != 1) {
+        if (controlFieldCheck != CF_START) {
             perror("applicationLayer");
             return;
         }
@@ -119,7 +119,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         char filename2[MAX_FILENAME_SIZE + 1];
         readControlPacket(&controlFieldCheck, &filesize2, filename2);
 
-        if (controlFieldCheck != 3 || filesize1 != filesize2 || strcmp(filename1, filename2) != 0) {
+        if (controlFieldCheck != CF_END || filesize1 != filesize2 || strcmp(filename1, filename2) != 0) {
             perror("applicationLayer");
             return;
         }
