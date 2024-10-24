@@ -56,6 +56,11 @@ int receiveFile(FILE* file, uint32_t filesize) {
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename) {
+    if (serialPort == NULL || role == NULL || baudRate == NULL || filename == NULL) {
+        perror("applicationLayer");
+        return;
+    }
+
     LinkLayer connectionParameters;
     strncpy(connectionParameters.serialPort, serialPort, 50);
     connectionParameters.role = strcmp(role, "tx") == 0 ? LlTx : LlRx;
