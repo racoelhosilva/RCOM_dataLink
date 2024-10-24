@@ -8,6 +8,7 @@
 #include "special_bytes.h"
 #include "packet.h"
 #include "debug.h"
+#include "statistics.h"
 
 uint32_t getFileSize(FILE *file) {
     fseek(file, 0, SEEK_END);
@@ -33,6 +34,8 @@ int sendFile(FILE* file) {
             return -1;
         }
 
+        statistics.dataBytes += payloadSize;
+
         payloadSize = fread(&buf, 1, MAX_DATA_PACKET_PAYLOAD_SIZE, file);
         sequenceNumber = (sequenceNumber + 1) % 100;
     }
@@ -57,6 +60,7 @@ int receiveFile(FILE* file, uint32_t filesize) {
 
         fwrite(data, 1, dataSize, file);
         totalDataSize += dataSize;
+        statistics.dataBytes += dataSize;
         sequenceNumberCheck = (sequenceNumberCheck + 1) % 100;
     }
     return 1;

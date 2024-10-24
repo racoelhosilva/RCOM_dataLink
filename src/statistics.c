@@ -1,6 +1,7 @@
 #include "statistics.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 Statistics statistics;
 
@@ -16,15 +17,16 @@ void initStatistics() {
 
 void printStatistics(const LinkLayer *connectionParameters) {
     double totalTime = (statistics.end.tv_sec - statistics.start.tv_sec) * 1e6 + (statistics.end.tv_usec + statistics.start.tv_usec);
-    double measuredBaudrate = statistics.dataBytes * 1e6 / totalTime;
+    double measuredBaudrate = statistics.dataBytes * 8 * 1e6 / totalTime;
     double efficiency = measuredBaudrate / connectionParameters->baudRate;
 
+    printf("\n");
     printf("***** STATISTICS *****\n");
     printf("\n");
-    printf("Communication time: %d s\n", totalTime / 1e6);
+    printf("Communication time: %f s\n", totalTime / 1e6);
     printf("Serial port baudrate: %d\n", connectionParameters->baudRate);
-    printf("Measured bitrate: %d\n", measuredBaudrate);
-    printf("Efficiency: %d\n", efficiency);
+    printf("Measured bitrate: %f\n", measuredBaudrate);
+    printf("Efficiency: %f\n", efficiency);
     printf("\n");
 
     switch (connectionParameters->role) {

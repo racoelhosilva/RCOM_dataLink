@@ -14,6 +14,7 @@ typedef struct {
     unsigned int badFrames;
     unsigned int totalRetries;
     unsigned int maxRetries;
+    LinkLayerRole role;
 } Statistics;
 
 extern Statistics statistics;

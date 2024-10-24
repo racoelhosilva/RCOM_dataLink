@@ -20,6 +20,10 @@ int connectionOpen;
 LinkLayer conParams;
 uint8_t frameNumber;
 
+unsigned int max(unsigned int a, unsigned int b) {
+    return a > b ? a : b;
+}
+
 ////////////////////////////////////////////////
 // LLOPEN
 ////////////////////////////////////////////////
@@ -34,8 +38,9 @@ int llopen(LinkLayer connectionParameters)
     if (openSerialPort(serialPort, baudRate) < 0)
         return -1;
     
-    initStatistics(&statistics);
+    initStatistics();
     LinkLayerRole role = conParams.role;
+    statistics.role = role;
     int maxTries = conParams.nRetransmissions;
     int timeout = conParams.timeout;
     frameNumber = 0;
@@ -68,6 +73,8 @@ int llopen(LinkLayer connectionParameters)
                 return 1;
             }
 
+            statistics.totalRetries++;
+            statistics.maxRetries = max(statistics.maxRetries, alarmStatus.count);
             debugLog("Try #%d\n", alarmStatus.count);
         }
 
@@ -86,6 +93,7 @@ int llopen(LinkLayer connectionParameters)
                     return -1;
                 
                 connectionOpen = TRUE;
+                gettimeofday(&statistics.start, NULL);
                 return 1;
             }
             if (controlField == DISC) {
@@ -154,6 +162,8 @@ int llwrite(const unsigned char *buf, int bufSize) {
             continue;
         }
 
+        statistics.totalRetries++;
+        statistics.maxRetries = max(statistics.maxRetries, alarmStatus.count);
         debugLog("Try #%d\n", alarmStatus.count);
     }
 
@@ -255,6 +265,8 @@ int llclose(int showStatistics)
             } while (r > 0 && controlField != DISC);
             
             if (r == 0) {
+                statistics.totalRetries++;
+                statistics.maxRetries = max(statistics.maxRetries, alarmStatus.count);
                 debugLog("Try #%d\n", alarmStatus.count);
                 continue;
             }
