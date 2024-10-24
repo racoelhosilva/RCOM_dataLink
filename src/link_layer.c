@@ -11,6 +11,7 @@
 #include "frame.h"
 #include "alarm.h"
 #include "debug.h"
+#include "statistics.h"
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
@@ -32,7 +33,8 @@ int llopen(LinkLayer connectionParameters)
     int baudRate = conParams.baudRate;
     if (openSerialPort(serialPort, baudRate) < 0)
         return -1;
-
+    
+    initStatistics(&statistics);
     LinkLayerRole role = conParams.role;
     int maxTries = conParams.nRetransmissions;
     int timeout = conParams.timeout;
@@ -62,6 +64,7 @@ int llopen(LinkLayer connectionParameters)
             if (r > 0) {
                 stopAlarm();
                 connectionOpen = TRUE;
+                gettimeofday(&statistics.start, NULL);
                 return 1;
             }
 
@@ -263,7 +266,9 @@ int llclose(int showStatistics)
             }
             break;
         }
+
         stopAlarm();
+        gettimeofday(&statistics.end, NULL);
         
     } else {
         uint8_t controlField;
@@ -279,9 +284,13 @@ int llclose(int showStatistics)
             if (readSOrUFrame(A1, &controlField, FALSE) < 0)
                 return -1;
         } while (controlField != UA);
+        
+        gettimeofday(&statistics.end, NULL);
     }
 
     connectionOpen = FALSE;
+    printStatistics(&conParams);
+
     int clstat = closeSerialPort();
     return clstat;
 }
