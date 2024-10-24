@@ -3,7 +3,7 @@
 
 # Parameters
 CC = gcc
-CFLAGS = -Wall -g -fsanitize=address -fsanitize=undefined
+CFLAGS = -Wall -g -fsanitize=address -fsanitize=undefined 
 # TODO: Remove sanitizers
 
 SRC = src/
@@ -26,6 +26,9 @@ all: $(BIN)/main $(BIN)/cable
 $(BIN)/main: main.c $(SRC)/*.c
 	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
 
+$(BIN)/main-dbg: main.c $(SRC)/*.c
+	$(CC) $(CFLAGS) -DDEBUG -o $@ $^ -I$(INCLUDE)
+
 $(BIN)/cable: $(CABLE_DIR)/cable.c
 	$(CC) $(CFLAGS) -o $@ $^
 
@@ -36,6 +39,14 @@ run_tx: $(BIN)/main
 .PHONY: run_rx
 run_rx: $(BIN)/main
 	./$(BIN)/main $(RX_SERIAL_PORT) $(BAUD_RATE) rx $(RX_FILE)
+
+.PHONY: run_tx_dbg
+run_tx_dbg: $(BIN)/main-dbg
+	./$(BIN)/main-dbg $(TX_SERIAL_PORT) $(BAUD_RATE) tx $(TX_FILE)
+
+.PHONY: run_rx_dbg
+run_rx_dbg: $(BIN)/main-dbg
+	./$(BIN)/main-dbg $(RX_SERIAL_PORT) $(BAUD_RATE) rx $(RX_FILE)
 
 .PHONY: run_cable
 run_cable: $(BIN)/cable

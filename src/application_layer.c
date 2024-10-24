@@ -45,7 +45,6 @@ int receiveFile(FILE* file, uint32_t filesize) {
             perror("applicationLayer");
             return -1;
         }
-        printf("Bytes received: %d\n", dataSize);
 
         fwrite(data, 1, dataSize, file);
         totalDataSize += dataSize;
@@ -56,7 +55,7 @@ int receiveFile(FILE* file, uint32_t filesize) {
 
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename) {
-    if (serialPort == NULL || role == NULL || baudRate == NULL || filename == NULL) {
+    if (serialPort == NULL || role == NULL || filename == NULL) {
         perror("applicationLayer");
         return;
     }

@@ -6,12 +6,13 @@
 #include "serial_port.h"
 #include "special_bytes.h"
 #include "link_layer.h"
+#include "debug.h"
 
 int readSOrUFrame(uint8_t addressField, uint8_t *controlField, int timeout) {
     State state = STATE_START;
     int totalBytes = 0;
 
-    printf("Read  <- ");
+    debugLog("Read  <- ");
     while (state != STATE_STOP && (!timeout || alarmStatus.enabled)) {
         uint8_t byte;
         int r = readByteSerialPort(&byte);
@@ -20,13 +21,13 @@ int readSOrUFrame(uint8_t addressField, uint8_t *controlField, int timeout) {
 
         if (r == 1) {
             totalBytes++;
-            printf(":%02x", byte);
+            debugLog(":%02x", byte);
 
             state = nextSOrUFrameState(state, byte, addressField, controlField);
         }
     }
 
-    printf(": %d bytes\n", totalBytes);
+    debugLog(": %d bytes\n", totalBytes);
     return !timeout || alarmStatus.enabled ? 1 : 0;
 }
 
@@ -40,7 +41,7 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
     int dataIndex = -1;
     int totalBytes = 0;
 
-    printf("Read  <- ");
+    debugLog("Read  <- ");
 
     uint8_t byte;
     uint8_t prevByte;
@@ -51,7 +52,7 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
 
         if (r == 1) {
             totalBytes++;
-            printf(":%02x", byte);
+            debugLog(":%02x", byte);
             fflush(stdout);
 
             state = nextIFrameState(state, byte, addressField, frameNumber, xor);
@@ -86,7 +87,7 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
         }
     }
 
-    printf(": %d bytes\n", totalBytes);
+    debugLog(": %d bytes\n", totalBytes);
 
     if (state == STATE_BCC2_BAD || state == STATE_STUFF_BAD)
         return -2;  // Data error
@@ -100,7 +101,7 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
 
 
 int writeFrame(const uint8_t *frame, int frameSize) {
-    printf("Write -> ");
+    debugLog("Write -> ");
 
     int bytes;
     for (int i = 0; i < frameSize; i += bytes) {
@@ -109,10 +110,10 @@ int writeFrame(const uint8_t *frame, int frameSize) {
             return -1;
 
         for (int j = 0; j < bytes; j++)
-            printf(":%02x", frame[i + j]);
+            debugLog(":%02x", frame[i + j]);
     }
 
-    printf(": %d bytes\n", frameSize);
+    debugLog(": %d bytes\n", frameSize);
     return bytes;
 }
 
