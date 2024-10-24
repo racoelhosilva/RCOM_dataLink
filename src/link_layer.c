@@ -10,6 +10,7 @@
 #include "state.h"
 #include "frame.h"
 #include "alarm.h"
+#include "debug.h"
 
 // MISC
 #define _POSIX_SOURCE 1 // POSIX compliant source
@@ -64,11 +65,11 @@ int llopen(LinkLayer connectionParameters)
                 return 1;
             }
 
-            printf("Try #%d\n", alarmStatus.count);
+            debugLog("Try #%d\n", alarmStatus.count);
         }
 
         stopAlarm();
-        perror("llopen");
+        errorLog(__func__, "Max connection tries exceeded");
         return -1;
 
     } else {
@@ -94,6 +95,7 @@ int llopen(LinkLayer connectionParameters)
                 } while (controlField != UA);
 
                 connectionOpen = FALSE;
+                errorLog(__func__, "Connection forcefully closed");
                 return -1;
             }
         }
@@ -104,10 +106,14 @@ int llopen(LinkLayer connectionParameters)
 // LLWRITE
 ////////////////////////////////////////////////
 int llwrite(const unsigned char *buf, int bufSize) {
-    if (!connectionOpen || conParams.role != LlTx)
+    if (!connectionOpen || conParams.role != LlTx) {
+        errorLog(__func__, "No connection open or called as receiver");
         return -1;
-    if (buf == NULL)
+    }
+    if (buf == NULL) {
+        errorLog(__func__, "Null pointer passed as parameter");
         return -1;
+    }
 
     int maxTries = conParams.nRetransmissions;
     int timeout = conParams.timeout;
@@ -145,10 +151,10 @@ int llwrite(const unsigned char *buf, int bufSize) {
             continue;
         }
 
-        printf("Try #%d\n", alarmStatus.count);
+        debugLog("Try #%d\n", alarmStatus.count);
     }
 
-    perror("llwrite");
+    errorLog(__func__, "Max send tries exceeded");
     return -1;
 }
 
@@ -156,10 +162,14 @@ int llwrite(const unsigned char *buf, int bufSize) {
 // LLREAD
 ////////////////////////////////////////////////
 int llread(unsigned char *packet) {
-    if (!connectionOpen || conParams.role != LlRx)
+    if (!connectionOpen || conParams.role != LlRx) {
+        errorLog(__func__, "No connection open or called as transmitter");
         return -1;
-    if (packet == NULL)
+    }
+    if (packet == NULL) {
+        errorLog(__func__, "Null pointer passed as parameter");
         return -1;
+    }
 
     int bytes;
     uint8_t readFrameNumber;
@@ -197,13 +207,12 @@ int llread(unsigned char *packet) {
                     return -1;
             } while (controlField != UA);
 
-            perror("llread");
+            errorLog(__func__, "Connection forcefully closed");
             connectionOpen = FALSE;
             return -1;
         }
     }
 
-    perror("llread");
     return -1;
 }
 
@@ -212,8 +221,10 @@ int llread(unsigned char *packet) {
 ////////////////////////////////////////////////
 int llclose(int showStatistics)
 {
-    if (!connectionOpen)
+    if (!connectionOpen) {
+        errorLog(__func__, "No connection open");
         return -1;
+    }
 
     LinkLayerRole role = conParams.role;
     int maxTries = conParams.nRetransmissions;
@@ -241,7 +252,7 @@ int llclose(int showStatistics)
             } while (r > 0 && controlField != DISC);
             
             if (r == 0) {
-                printf("Try #%d\n", alarmStatus.count);
+                debugLog("Try #%d\n", alarmStatus.count);
                 continue;
             }
 

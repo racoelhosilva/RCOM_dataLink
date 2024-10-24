@@ -5,7 +5,9 @@
 
 #include "application_layer.h"
 #include "link_layer.h"
+#include "special_bytes.h"
 #include "packet.h"
+#include "debug.h"
 
 uint32_t getFileSize(FILE *file) {
     fseek(file, 0, SEEK_END);
@@ -26,6 +28,10 @@ int sendFile(FILE* file) {
         if (r < 0) {
             return -1;
         }
+        if (r < payloadSize) {
+            errorLog(__func__, "Written data packet smaller than payload size");
+            return -1;
+        }
 
         payloadSize = fread(&buf, 1, MAX_DATA_PACKET_PAYLOAD_SIZE, file);
         sequenceNumber = (sequenceNumber + 1) % 100;
@@ -36,13 +42,16 @@ int sendFile(FILE* file) {
 int receiveFile(FILE* file, uint32_t filesize) {
     uint8_t data[MAX_PAYLOAD_SIZE];
     int dataSize;
-    uint8_t controlFieldCheck, sequenceNumber = 0, sequenceNumberCheck = 0;
+    uint8_t sequenceNumber = 0, sequenceNumberCheck = 0;
     uint32_t totalDataSize = 0;    
 
     while (totalDataSize < filesize) {
-        dataSize = readDataPacket(&controlFieldCheck, &sequenceNumber, data);
-        if (dataSize < 0 || controlFieldCheck != CF_DATA || sequenceNumber != sequenceNumberCheck) {
-            perror("applicationLayer");
+        dataSize = readDataPacket(&sequenceNumber, data);
+        if (dataSize < 0)
+            return -1;
+        
+        if (sequenceNumber != sequenceNumberCheck) {
+            errorLog(__func__, "Unexpected packet sequence number (received %d, expected %d)", sequenceNumberCheck, sequenceNumber);
             return -1;
         }
 
@@ -56,7 +65,7 @@ int receiveFile(FILE* file, uint32_t filesize) {
 void applicationLayer(const char *serialPort, const char *role, int baudRate,
                       int nTries, int timeout, const char *filename) {
     if (serialPort == NULL || role == NULL || filename == NULL) {
-        perror("applicationLayer");
+        errorLog(__func__, "Null pointer passed as parameter");
         return;
     }
 
@@ -68,7 +77,6 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
     connectionParameters.timeout = timeout;
 
     if (llopen(connectionParameters) < 0) {
-        perror("applicationLayer");
         return;
     }
 
@@ -76,7 +84,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         
         FILE *file = fopen(filename, "r");
         if (file == NULL) {
-            perror("applicationLayer");
+            errorLog(__func__, "Couldn't open file to transmit");
             return;
         }
 
@@ -90,7 +98,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         }
         
         if (fclose(file)) {
-            perror("applicationLayer");
+            errorLog(__func__, "Couldn't close transmitted file");
             return;
         }
 
@@ -101,7 +109,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
 
         FILE *file = fopen(filename, "w");
         if (file == NULL) {
-            perror("applicationLayer");
+            errorLog(__func__, "Couldn't open file to receive");
             return;
         }
 
@@ -111,7 +119,7 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         readControlPacket(&controlFieldCheck, &filesize1, filename1);
 
         if (controlFieldCheck != CF_START) {
-            perror("applicationLayer");
+            errorLog(__func__, "Invalid initial packet control field");
             return;
         }
 
@@ -123,15 +131,27 @@ void applicationLayer(const char *serialPort, const char *role, int baudRate,
         char filename2[MAX_FILENAME_SIZE + 1];
         readControlPacket(&controlFieldCheck, &filesize2, filename2);
 
-        if (controlFieldCheck != CF_END || filesize1 != filesize2 || strcmp(filename1, filename2) != 0) {
-            perror("applicationLayer");
+        if (controlFieldCheck != CF_END) {
+            errorLog(__func__, "Invalid final packet control field");
+            return;
+        }
+
+        if (filesize1 != filesize2 || strcmp(filename1, filename2) != 0) {
+            errorLog(__func__, "Mismatch between start and end packet parameters");
+            return;
+        }
+
+        uint32_t size = getFileSize(file);
+        if (filesize1 != size) {
+            errorLog(__func__, "File size mismatch");
             return;
         }
 
         if (fclose(file)){
+            errorLog(__func__, "Couldn't close received file");
             return;
         }
     }
-
+    
     llclose(0);
 }

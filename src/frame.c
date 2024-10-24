@@ -60,12 +60,16 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
             if (isDataState(state)) {
                 if (dataIndex >= 0) {
                     if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF) {
-                        if (dataIndex >= MAX_PAYLOAD_SIZE)
+                        if (dataIndex >= MAX_PAYLOAD_SIZE) {
+                            debugLog("*** Max frame payload size exceeded ***\n");
                             return -2;
+                        }
                         data[dataIndex] = decodeByte(prevByte);
                     } else if (state != STATE_DATA_STUFF) {
-                        if (dataIndex >= MAX_PAYLOAD_SIZE)
+                        if (dataIndex >= MAX_PAYLOAD_SIZE) {
+                            debugLog("*** Max frame payload size exceeded ***\n");
                             return -2;
+                        }
                         data[dataIndex] = prevByte;
                     }
                 }
@@ -89,12 +93,22 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
 
     debugLog(": %d bytes\n", totalBytes);
 
-    if (state == STATE_BCC2_BAD || state == STATE_STUFF_BAD)
+    if (state == STATE_BCC2_BAD) {
+        debugLog("*** Bad BCC2 ***\n");
         return -2;  // Data error
-    if (state == STATE_STOP_SET)
+    }
+    if (state == STATE_STUFF_BAD) {
+        debugLog("*** Bad stuffing detected ***\n");
+        return -2;
+    }
+    if (state == STATE_STOP_SET) {
+        debugLog("*** SET frame received ***\n");
         return -3;
-    if (state == STATE_STOP_DISC)
+    }
+    if (state == STATE_STOP_DISC) {
+        debugLog("*** DISC frame received ***\n");
         return -4;
+    }
 
     return dataIndex;
 }

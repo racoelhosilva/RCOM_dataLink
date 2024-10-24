@@ -11,7 +11,7 @@
 #define MAX_DATA_PACKET_PAYLOAD_SIZE (MAX_PAYLOAD_SIZE - BASE_DATA_PACKET_SIZE)
 
 int readControlPacket(uint8_t* controlField, uint32_t *filesize, char *filename);
-int readDataPacket(uint8_t *controlField, uint8_t *sequenceNumber, uint8_t *packetData);
+int readDataPacket(uint8_t *sequenceNumber, uint8_t *packetData);
 
 int writeControlPacket(uint8_t controlField, uint32_t filesize, const char *filename);
 int writeDataPacket(uint8_t sequenceNumber, uint16_t packetDataSize, const uint8_t *packetData);

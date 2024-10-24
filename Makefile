@@ -21,7 +21,7 @@ RX_FILE = penguin-received.gif
 
 # Targets
 .PHONY: all
-all: $(BIN)/main $(BIN)/cable
+all: $(BIN)/main $(BIN)/ $(BIN)/cable
 
 $(BIN)/main: main.c $(SRC)/*.c
 	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)

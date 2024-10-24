@@ -18,4 +18,11 @@
 #define ESC2_FLAG 0x5E  // Escaped flag 2nd byte
 #define ESC2_ESC  0x5D  // Escaped ESC 2nd byte
 
+#define TLV_FILESIZE    0
+#define TLV_FILENAME    1
+
+#define CF_START    1
+#define CF_DATA     2
+#define CF_END      3
+
 #endif  // _SPECIAL_BYTES_H_
