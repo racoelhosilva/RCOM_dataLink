@@ -201,10 +201,8 @@ State nextIFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *
             state = STATE_DATA_STUFF;
         } else if (byte == ESC2_ESC) {
             state = STATE_DATA_STUFF;
-        } else if (byte == FLAG) {
-            state = STATE_FLAG_RCV;
         } else {
-            state = STATE_START;
+            state = STATE_STUFF_BAD;
         }
         break;
 

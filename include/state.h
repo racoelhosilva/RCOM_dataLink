@@ -22,6 +22,7 @@ typedef enum {
     STATE_STOP_SET,
     STATE_STOP_DISC,
     STATE_BCC2_BAD,
+    STATE_STUFF_BAD,
 } State;
 
 int isDataState(State state);

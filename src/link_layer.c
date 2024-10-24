@@ -37,9 +37,8 @@ int llopen(LinkLayer connectionParameters)
     if (role == LlTx) {
         configAlarm();
 
-        for (int nTries = 0; nTries < maxTries; nTries++) {
+        while (alarmStatus.count < maxTries) {
             stopAlarm();
-            printf("Try #%d\n", nTries);
 
             if (writeSOrUFrame(A1, SET) < 0)
                 return -1;
@@ -49,11 +48,14 @@ int llopen(LinkLayer connectionParameters)
             // Wait until all bytes have been written to the serial port
             // sleep(1);  // TODO: Is this to be removed?
 
+            // TODO: Respond to DISC
             int r = readKnownSOrUFrameTimeout(A1, UA);
             if (r != 0) {
                 stopAlarm();
                 return r;
             }
+
+            printf("Try #%d\n", alarmStatus.count);
         }
 
         stopAlarm();
@@ -79,11 +81,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
 
     configAlarm();
 
-    // TODO: Refactor nTries to try
-    for (int nTries = 0; nTries < maxTries; nTries++) {
-        stopAlarm();
-        printf("Try #%d\n", nTries);
-
+    while (alarmStatus.count < maxTries) {
         int bytes = writeIFrame(A1, frameNumber, buf, bufSize);
         if (bytes < 0)
             return -1;
@@ -91,21 +89,34 @@ int llwrite(const unsigned char *buf, int bufSize) {
         resetAlarm(timeout);
 
         uint8_t controlField = 0;
-        int r;
-        if ((r = readSOrUFrameTimeout(A1, &controlField)) < 0)
+        int r = readSOrUFrameTimeout(A1, &controlField);
+        if (r < 0) {
+            stopAlarm();
             return -1;
-
-        int goodControlField = controlField != RR(0) && controlField != RR(1) && controlField != REJ(frameNumber);
-        if (r == 0 || goodControlField)
-            continue;
-
-        if (controlField == RR(!frameNumber)) {
-            frameNumber = !frameNumber;
-            return bytes;
         }
+
+        if (r > 0) {
+            int badControlField = controlField != RR(0) && controlField != RR(1) && controlField != REJ(frameNumber);
+            if (badControlField) {
+                alarmStatus.count = 0;
+                stopAlarm();
+                continue;
+            }
+
+            if (controlField == RR(!frameNumber)) {
+                frameNumber = !frameNumber;
+                stopAlarm();
+                return bytes;
+            }
+
+            alarmStatus.count = 0;
+            stopAlarm();
+            continue;
+        }
+
+        printf("Try #%d\n", alarmStatus.count);
     }
 
-    stopAlarm();
     perror("llwrite");
     return -1;
 }
@@ -113,14 +124,11 @@ int llwrite(const unsigned char *buf, int bufSize) {
 ////////////////////////////////////////////////
 // LLREAD
 ////////////////////////////////////////////////
-int llread(unsigned char *packet)
-{
-    int maxTries = conParams.nRetransmissions;
-
+int llread(unsigned char *packet) {
     int bytes;
     uint8_t readFrameNumber;
 
-    for (int nTries = 0; nTries < maxTries; nTries++) {
+    while (TRUE) {
         bytes = readIFrame(A1, &readFrameNumber, packet);
 
         if (bytes > 0) {
@@ -170,9 +178,8 @@ int llclose(int showStatistics)
     if (role == LlTx) {
         configAlarm();
 
-        for (int nTries = 0; nTries < maxTries; nTries++) {
+        while (alarmStatus.count < maxTries) {
             stopAlarm();
-            printf("Try #%d\n", nTries);
 
             int bytes = writeSOrUFrame(A1, DISC);
             if (bytes < 0)
@@ -180,13 +187,18 @@ int llclose(int showStatistics)
 
             resetAlarm(timeout);
 
-            int r;
-            if ((r = readKnownSOrUFrameTimeout(A2, DISC)) < 0) {
+            int r = readKnownSOrUFrameTimeout(A1, DISC);
+            if (r < 0) {
                 stopAlarm();
                 return -1;
             }
+            
+            if (r == 0) {
+                printf("Try #%d\n", alarmStatus.count);
+                continue;
+            }
 
-            bytes = writeSOrUFrame(A2, UA);
+            bytes = writeSOrUFrame(A1, UA);
             if (bytes < 0) {
                 stopAlarm();
                 return -1;
@@ -198,10 +210,9 @@ int llclose(int showStatistics)
     } else {
         if (readKnownSOrUFrame(A1, DISC) < 0)
             return -1;
-        // TODO: Is it A1 or A2
-        if (writeSOrUFrame(A2, DISC) < 0)
+        if (writeSOrUFrame(A1, DISC) < 0)
             return -1;
-        if (readKnownSOrUFrame(A2, UA) < 0)
+        if (readKnownSOrUFrame(A1, UA) < 0)
             return -1;
     }
 
