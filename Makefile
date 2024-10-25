@@ -14,7 +14,6 @@ CABLE_DIR = cable/
 TX_SERIAL_PORT = /dev/ttyS10
 RX_SERIAL_PORT = /dev/ttyS11
 
-MAX_PAYLOAD_SIZE = 1024
 BAUD_RATE = 9600
 
 TX_FILE = penguin.gif
@@ -25,13 +24,13 @@ RX_FILE = penguin-received.gif
 all: $(BIN)/main $(BIN)/ $(BIN)/cable
 
 $(BIN)/main: main.c $(SRC)/*.c
-	$(CC) $(CFLAGS) -DMAX_PAYLOAD_SIZE=$(MAX_PAYLOAD_SIZE) -o $@ $^ -I$(INCLUDE)
+	$(CC) $(CFLAGS) -o $@ $^ -I$(INCLUDE)
 
 $(BIN)/main-dbg: main.c $(SRC)/*.c
-	$(CC) $(CFLAGS) -DMAX_PAYLOAD_SIZE=$(MAX_PAYLOAD_SIZE) -DDEBUG -o $@ $^ -I$(INCLUDE)
+	$(CC) $(CFLAGS) -DDEBUG -o $@ $^ -I$(INCLUDE)
 
 $(BIN)/main-stats: main.c $(SRC)/*.c
-	$(CC) $(CFLAGS) -DMAX_PAYLOAD_SIZE=$(MAX_PAYLOAD_SIZE) -DSTATISTICS=1 -o $@ $^ -I$(INCLUDE)
+	$(CC) $(CFLAGS) -DSTATISTICS=1 -o $@ $^ -I$(INCLUDE)
 
 $(BIN)/cable: $(CABLE_DIR)/cable.c
 	$(CC) $(CFLAGS) -o $@ $^

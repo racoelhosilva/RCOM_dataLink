@@ -10,6 +10,8 @@
 #endif
 
 typedef struct {
+    LinkLayerRole role;
+    unsigned int baudrate;
     struct timeval start;
     struct timeval end;
     unsigned int dataBytes;
@@ -18,12 +20,12 @@ typedef struct {
     unsigned int badFrames;
     unsigned int totalRej;
     unsigned int totalTimeouts;
-    LinkLayerRole role;
 } Statistics;
 
 extern Statistics statistics;
 
-void initStatistics();
-void printStatistics(const LinkLayer *connectionParameters);
+void initStatistics(const LinkLayer *connectionParameters);
+void printStatistics();
+int storeStatistics();
 
 #endif  //_STATISTICS_H_

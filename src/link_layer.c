@@ -34,9 +34,8 @@ int llopen(LinkLayer connectionParameters)
     if (openSerialPort(serialPort, baudRate) < 0)
         return -1;
     
-    initStatistics();
+    initStatistics(&conParams);
     LinkLayerRole role = conParams.role;
-    statistics.role = role;
     int maxTries = conParams.nRetransmissions;
     int timeout = conParams.timeout;
     frameNumber = 0;
@@ -297,7 +296,8 @@ int llclose(int showStatistics)
     connectionOpen = FALSE;
     
     if (showStatistics){
-        printStatistics(&conParams);
+        printStatistics();
+        storeStatistics();
     }
 
     int clstat = closeSerialPort();
