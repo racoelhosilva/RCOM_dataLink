@@ -34,7 +34,7 @@ int llopen(LinkLayer connectionParameters)
     if (openSerialPort(serialPort, baudRate) < 0)
         return -1;
     
-    initStatistics(&statistics);
+    initStatistics(&conParams);
     LinkLayerRole role = conParams.role;
     int maxTries = conParams.nRetransmissions;
     int timeout = conParams.timeout;
@@ -68,6 +68,7 @@ int llopen(LinkLayer connectionParameters)
                 return 1;
             }
 
+            statistics.totalTimeouts++;
             debugLog("Try #%d\n", alarmStatus.count);
         }
 
@@ -86,6 +87,7 @@ int llopen(LinkLayer connectionParameters)
                     return -1;
                 
                 connectionOpen = TRUE;
+                gettimeofday(&statistics.start, NULL);
                 return 1;
             }
             if (controlField == DISC) {
@@ -151,9 +153,11 @@ int llwrite(const unsigned char *buf, int bufSize) {
 
             alarmStatus.count = 0;
             stopAlarm();
+            statistics.totalRej++;
             continue;
         }
 
+        statistics.totalTimeouts++;
         debugLog("Try #%d\n", alarmStatus.count);
     }
 
@@ -255,6 +259,7 @@ int llclose(int showStatistics)
             } while (r > 0 && controlField != DISC);
             
             if (r == 0) {
+                statistics.totalTimeouts++;
                 debugLog("Try #%d\n", alarmStatus.count);
                 continue;
             }
@@ -289,7 +294,11 @@ int llclose(int showStatistics)
     }
 
     connectionOpen = FALSE;
-    printStatistics(&conParams);
+    
+    if (showStatistics){
+        printStatistics();
+        storeStatistics();
+    }
 
     int clstat = closeSerialPort();
     return clstat;

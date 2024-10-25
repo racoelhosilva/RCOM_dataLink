@@ -7,6 +7,7 @@
 #include "special_bytes.h"
 #include "link_layer.h"
 #include "debug.h"
+#include "statistics.h"
 
 int readSOrUFrame(uint8_t addressField, uint8_t *controlField, int timeout) {
     State state = STATE_START;
@@ -25,6 +26,11 @@ int readSOrUFrame(uint8_t addressField, uint8_t *controlField, int timeout) {
 
             state = nextSOrUFrameState(state, byte, addressField, controlField);
         }
+    }
+
+    if (statistics.role == LlRx) {
+        statistics.totalBytes += totalBytes;
+        statistics.totalFrames++;
     }
 
     debugLog(": %d bytes\n", totalBytes);
@@ -61,12 +67,14 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
                 if (dataIndex >= 0) {
                     if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF) {
                         if (dataIndex >= MAX_PAYLOAD_SIZE) {
+                            statistics.badFrames++;
                             debugLog("*** Max frame payload size exceeded ***\n");
                             return -2;
                         }
                         data[dataIndex] = decodeByte(prevByte);
                     } else if (state != STATE_DATA_STUFF) {
                         if (dataIndex >= MAX_PAYLOAD_SIZE) {
+                            statistics.badFrames++;
                             debugLog("*** Max frame payload size exceeded ***\n");
                             return -2;
                         }
@@ -91,21 +99,28 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
         }
     }
 
+    statistics.totalBytes += totalBytes;
+    statistics.totalFrames++;
+
     debugLog(": %d bytes\n", totalBytes);
 
     if (state == STATE_BCC2_BAD) {
+        statistics.badFrames++;
         debugLog("*** Bad BCC2 ***\n");
         return -2;  // Data error
     }
     if (state == STATE_STUFF_BAD) {
+        statistics.badFrames++;
         debugLog("*** Bad stuffing detected ***\n");
         return -2;
     }
     if (state == STATE_STOP_SET) {
+        statistics.badFrames++;
         debugLog("*** SET frame received ***\n");
         return -3;
     }
     if (state == STATE_STOP_DISC) {
+        statistics.badFrames++;
         debugLog("*** DISC frame received ***\n");
         return -4;
     }
@@ -125,6 +140,11 @@ int writeFrame(const uint8_t *frame, int frameSize) {
 
         for (int j = 0; j < bytes; j++)
             debugLog(":%02x", frame[i + j]);
+    }
+
+    if (statistics.role == LlTx) {
+        statistics.totalBytes += frameSize;
+        statistics.totalFrames++;
     }
 
     debugLog(": %d bytes\n", frameSize);
