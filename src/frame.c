@@ -144,6 +144,7 @@ int writeFrame(const uint8_t *frame, int frameSize) {
 
     if (statistics.role == LlTx) {
         statistics.totalBytes += frameSize;
+        statistics.totalFrames++;
     }
 
     debugLog(": %d bytes\n", frameSize);

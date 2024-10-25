@@ -299,7 +299,10 @@ int llclose(int showStatistics)
     }
 
     connectionOpen = FALSE;
-    printStatistics(&conParams);
+    
+    if (showStatistics){
+        printStatistics(&conParams);
+    }
 
     int clstat = closeSerialPort();
     return clstat;

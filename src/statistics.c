@@ -25,6 +25,7 @@ void printStatistics(const LinkLayer *connectionParameters) {
     printf("\n");
     printf("Communication time: %f s\n", totalTime / 1e6);
     printf("Serial port baudrate: %d\n", connectionParameters->baudRate);
+    printf("Payload size: %d\n", MAX_PAYLOAD_SIZE);
     printf("Measured bitrate: %f\n", measuredBaudrate);
     printf("Efficiency: %f\n", efficiency);
     printf("\n");
@@ -33,15 +34,25 @@ void printStatistics(const LinkLayer *connectionParameters) {
       case LlTx:
         printf("Total bytes transmitted: %d\n", statistics.totalBytes);
         printf("Data bytes transmitted: %d\n", statistics.dataBytes);
+        printf("Total frames transmitted: %d\n", statistics.totalFrames);
+        printf("Average frame size: %d\n", statistics.totalBytes / statistics.totalFrames);
+        printf("\n");
+
         printf("Total negative acknowledgements: %d\n", statistics.totalRej);
         printf("Total timeouts: %d\n", statistics.totalTimeouts);
+        printf("Frame Error Ratio: %f\n", (double)(statistics.totalRej + statistics.totalTimeouts)/statistics.totalFrames);
         break;
 
       case LlRx:
         printf("Total bytes received: %d\n", statistics.totalBytes);
         printf("Data bytes received: %d\n", statistics.dataBytes);
         printf("Total frames received: %d\n", statistics.totalFrames);
+        printf("Average frame size: %d\n", statistics.totalBytes / statistics.totalFrames);
+        printf("\n");
+
+        printf("Good frames detected: %d\n", statistics.totalFrames - statistics.badFrames);
         printf("Bad frames detected: %d\n", statistics.badFrames);
+        printf("Frame Error Ratio: %f\n", (double)statistics.badFrames/statistics.totalFrames);
         break;
     }
 
