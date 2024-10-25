@@ -11,8 +11,8 @@ void initStatistics() {
     statistics.totalBytes = 0;
     statistics.totalFrames = 0;
     statistics.badFrames = 0;
-    statistics.totalRetries = 0;
-    statistics.maxRetries = 0;
+    statistics.totalRej = 0;
+    statistics.totalTimeouts = 0;
 }
 
 void printStatistics(const LinkLayer *connectionParameters) {
@@ -33,8 +33,8 @@ void printStatistics(const LinkLayer *connectionParameters) {
       case LlTx:
         printf("Total bytes transmitted: %d\n", statistics.totalBytes);
         printf("Data bytes transmitted: %d\n", statistics.dataBytes);
-        printf("Total retries: %d\n", statistics.totalRetries);
-        printf("Max retries (single packet): %d\n", statistics.maxRetries);
+        printf("Total negative acknowledgements: %d\n", statistics.totalRej);
+        printf("Total timeouts: %d\n", statistics.totalTimeouts);
         break;
 
       case LlRx:

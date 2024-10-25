@@ -67,12 +67,14 @@ int readIFrame(uint8_t addressField, uint8_t *frameNumber, uint8_t *data) {
                 if (dataIndex >= 0) {
                     if (state == STATE_DATA_WRT_STUFF || state == STATE_DATA_ESC_WRT_STUFF) {
                         if (dataIndex >= MAX_PAYLOAD_SIZE) {
+                            statistics.badFrames++;
                             debugLog("*** Max frame payload size exceeded ***\n");
                             return -2;
                         }
                         data[dataIndex] = decodeByte(prevByte);
                     } else if (state != STATE_DATA_STUFF) {
                         if (dataIndex >= MAX_PAYLOAD_SIZE) {
+                            statistics.badFrames++;
                             debugLog("*** Max frame payload size exceeded ***\n");
                             return -2;
                         }

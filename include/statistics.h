@@ -12,8 +12,8 @@ typedef struct {
     unsigned int totalBytes;
     unsigned int totalFrames;
     unsigned int badFrames;
-    unsigned int totalRetries;
-    unsigned int maxRetries;
+    unsigned int totalRej;
+    unsigned int totalTimeouts;
     LinkLayerRole role;
 } Statistics;
 

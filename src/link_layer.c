@@ -73,8 +73,7 @@ int llopen(LinkLayer connectionParameters)
                 return 1;
             }
 
-            statistics.totalRetries++;
-            statistics.maxRetries = max(statistics.maxRetries, alarmStatus.count);
+            statistics.totalTimeouts++;
             debugLog("Try #%d\n", alarmStatus.count);
         }
 
@@ -159,11 +158,11 @@ int llwrite(const unsigned char *buf, int bufSize) {
 
             alarmStatus.count = 0;
             stopAlarm();
+            statistics.totalRej++;
             continue;
         }
 
-        statistics.totalRetries++;
-        statistics.maxRetries = max(statistics.maxRetries, alarmStatus.count);
+        statistics.totalTimeouts++;
         debugLog("Try #%d\n", alarmStatus.count);
     }
 
@@ -265,8 +264,7 @@ int llclose(int showStatistics)
             } while (r > 0 && controlField != DISC);
             
             if (r == 0) {
-                statistics.totalRetries++;
-                statistics.maxRetries = max(statistics.maxRetries, alarmStatus.count);
+                statistics.totalTimeouts++;
                 debugLog("Try #%d\n", alarmStatus.count);
                 continue;
             }
