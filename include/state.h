@@ -25,9 +25,13 @@ typedef enum {
     STATE_STUFF_BAD,
 } State;
 
+// Returns true if the given state is a data state, and false otherwise.
 int isDataState(State state);
 
+// Calculates the next state, in the parsing of a S/U frame.
 State nextSOrUFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *controlField);
+
+// Calculates the next state, in the parsing of an I frame.
 State nextIFrameState(State state, uint8_t byte, uint8_t addressField, uint8_t *frameNumber, uint8_t xor);
 
 #endif  // _STATE_H_

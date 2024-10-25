@@ -24,8 +24,14 @@ typedef struct {
 
 extern Statistics statistics;
 
+// Initiates the statistics structure.
 void initStatistics(const LinkLayer *connectionParameters);
+
+// Prints the collected statistics to the console.
 void printStatistics();
+
+// Stores the statistics into a file.
+// Returns 1 on success and a negative value otherwise.
 int storeStatistics();
 
 #endif  //_STATISTICS_H_

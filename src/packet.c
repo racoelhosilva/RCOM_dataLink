@@ -27,8 +27,8 @@ int readControlPacket(uint8_t* controlField, uint32_t *filesize, char *filename)
 
     // TLV for File Size
     T1 = packet[1];
-    if (T1 != TLV_FILESIZE) {
-        errorLog(__func__, "Unexpected parameter type (received %d, expected %d)", T1, TLV_FILESIZE);
+    if (T1 != TLV_FILESIZE_T) {
+        errorLog(__func__, "Unexpected parameter type (received %d, expected %d)", T1, TLV_FILESIZE_T);
         return -1;
     }
 
@@ -42,8 +42,8 @@ int readControlPacket(uint8_t* controlField, uint32_t *filesize, char *filename)
 
     // TLV for File Name
     T2 = packet[7];
-    if (T2 != TLV_FILENAME) {
-        errorLog(__func__, "Unexpected parameter type (received %d, expected %d)", T2, TLV_FILENAME);
+    if (T2 != TLV_FILENAME_T) {
+        errorLog(__func__, "Unexpected parameter type (received %d, expected %d)", T2, TLV_FILENAME_T);
         return -1;
     }
     
@@ -104,7 +104,7 @@ int writeControlPacket(uint8_t controlField, uint32_t filesize, const char *file
     buf[0] = controlField;
 
     // TLV for file size
-    buf[1] = TLV_FILESIZE;
+    buf[1] = TLV_FILESIZE_T;
     buf[2] = 4;
     buf[3] = (filesize >> 24) & 0xFF;
     buf[4] = (filesize >> 16) & 0xFF;
@@ -112,7 +112,7 @@ int writeControlPacket(uint8_t controlField, uint32_t filesize, const char *file
     buf[6] = (filesize) & 0xFF;
 
     // TLV for file name
-    buf[7] = TLV_FILENAME;
+    buf[7] = TLV_FILENAME_T;
     buf[8] = filenameSize;
     memcpy(buf + 9, filename, filenameSize);
 

@@ -18,11 +18,11 @@
 #define ESC2_FLAG 0x5E  // Escaped flag 2nd byte
 #define ESC2_ESC  0x5D  // Escaped ESC 2nd byte
 
-#define TLV_FILESIZE    0
-#define TLV_FILENAME    1
+#define TLV_FILESIZE_T 0  // Control packet file size type octet
+#define TLV_FILENAME_T 1  // Control packet filename type octet
 
-#define CF_START    1
-#define CF_DATA     2
-#define CF_END      3
+#define CF_START 1  // Start control packet control field
+#define CF_DATA  2  // Data packet control field
+#define CF_END   3  // End control packet control field
 
 #endif  // _SPECIAL_BYTES_H_
