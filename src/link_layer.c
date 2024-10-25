@@ -20,10 +20,6 @@ int connectionOpen;
 LinkLayer conParams;
 uint8_t frameNumber;
 
-unsigned int max(unsigned int a, unsigned int b) {
-    return a > b ? a : b;
-}
-
 ////////////////////////////////////////////////
 // LLOPEN
 ////////////////////////////////////////////////

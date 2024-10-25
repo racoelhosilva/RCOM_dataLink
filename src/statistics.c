@@ -6,7 +6,6 @@
 Statistics statistics;
 
 void initStatistics() {
-    gettimeofday(&statistics.start, NULL);
     statistics.dataBytes = 0;
     statistics.totalBytes = 0;
     statistics.totalFrames = 0;
@@ -21,7 +20,7 @@ void printStatistics(const LinkLayer *connectionParameters) {
     double efficiency = measuredBaudrate / connectionParameters->baudRate;
 
     printf("\n");
-    printf("***** STATISTICS *****\n");
+    printf("************ STATISTICS ************\n");
     printf("\n");
     printf("Communication time: %f s\n", totalTime / 1e6);
     printf("Serial port baudrate: %d\n", connectionParameters->baudRate);
@@ -35,9 +34,6 @@ void printStatistics(const LinkLayer *connectionParameters) {
         printf("Total bytes transmitted: %d\n", statistics.totalBytes);
         printf("Data bytes transmitted: %d\n", statistics.dataBytes);
         printf("Total frames transmitted: %d\n", statistics.totalFrames);
-        printf("Average frame size: %d\n", statistics.totalBytes / statistics.totalFrames);
-        printf("\n");
-
         printf("Total negative acknowledgements: %d\n", statistics.totalRej);
         printf("Total timeouts: %d\n", statistics.totalTimeouts);
         printf("Frame Error Ratio: %f\n", (double)(statistics.totalRej + statistics.totalTimeouts)/statistics.totalFrames);
@@ -47,9 +43,6 @@ void printStatistics(const LinkLayer *connectionParameters) {
         printf("Total bytes received: %d\n", statistics.totalBytes);
         printf("Data bytes received: %d\n", statistics.dataBytes);
         printf("Total frames received: %d\n", statistics.totalFrames);
-        printf("Average frame size: %d\n", statistics.totalBytes / statistics.totalFrames);
-        printf("\n");
-
         printf("Good frames detected: %d\n", statistics.totalFrames - statistics.badFrames);
         printf("Bad frames detected: %d\n", statistics.badFrames);
         printf("Frame Error Ratio: %f\n", (double)statistics.badFrames/statistics.totalFrames);
@@ -57,5 +50,5 @@ void printStatistics(const LinkLayer *connectionParameters) {
     }
 
     printf("\n");
-    printf("**********************\n");
+    printf("************************************\n");
 }

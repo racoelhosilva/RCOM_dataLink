@@ -5,6 +5,10 @@
 
 #include "link_layer.h"
 
+#ifndef STATISTICS
+#define STATISTICS 0
+#endif
+
 typedef struct {
     struct timeval start;
     struct timeval end;
