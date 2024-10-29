@@ -20,14 +20,14 @@ void initStatistics(const LinkLayer *connectionParameters) {
 }
 
 void printStatistics() {
-    double totalTime = (statistics.end.tv_sec - statistics.start.tv_sec) * 1e6 + (statistics.end.tv_usec + statistics.start.tv_usec);
-    double measuredBaudrate = statistics.dataBytes * 8 * 1e6 / totalTime;
+    double totalTime = (statistics.end.tv_sec - statistics.start.tv_sec) * 1e9 + (statistics.end.tv_nsec - statistics.start.tv_nsec);
+    double measuredBaudrate = statistics.dataBytes * 8 * 1e9 / totalTime;
     double efficiency = measuredBaudrate / statistics.baudrate;
 
     printf("\n");
     printf("************ STATISTICS ************\n");
     printf("\n");
-    printf("Communication time: %f s\n", totalTime / 1e6);
+    printf("Communication time: %f s\n", totalTime / 1e9);
     printf("Serial port baudrate: %d\n", statistics.baudrate);
     printf("Payload size: %d\n", MAX_PAYLOAD_SIZE);
     printf("Measured baudrate: %f\n", measuredBaudrate);
@@ -60,8 +60,8 @@ void printStatistics() {
 
 int storeStatistics() {
     FILE *file;
-    double totalTime = (statistics.end.tv_sec - statistics.start.tv_sec) * 1e6 + (statistics.end.tv_usec + statistics.start.tv_usec);
-    double measuredBaudrate = statistics.dataBytes * 8 * 1e6 / totalTime;
+    double totalTime = (statistics.end.tv_sec - statistics.start.tv_sec) * 1e9 + (statistics.end.tv_nsec - statistics.start.tv_nsec);
+    double measuredBaudrate = statistics.dataBytes * 8 * 1e9 / totalTime;
     double efficiency = measuredBaudrate / statistics.baudrate;
 
     if (statistics.role == LlTx) {
@@ -86,7 +86,7 @@ int storeStatistics() {
         fprintf(file, ",,%d,%d,%f,%f,%f,%d,%d,%d,%d,%d,%f\n",
             statistics.baudrate,
             MAX_PAYLOAD_SIZE,
-            totalTime / 1e6,
+            totalTime / 1e9,
             measuredBaudrate,
             efficiency,
             statistics.totalBytes,
@@ -119,7 +119,7 @@ int storeStatistics() {
         fprintf(file, ",,%d,%d,%f,%f,%f,%d,%d,%d,%d,%d,%f\n",
             statistics.baudrate,
             MAX_PAYLOAD_SIZE,
-            totalTime / 1e6,
+            totalTime / 1e9,
             measuredBaudrate,
             efficiency,
             statistics.totalBytes,

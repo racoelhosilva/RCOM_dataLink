@@ -3,7 +3,7 @@
 
 # Parameters
 CC = gcc
-CFLAGS = -Wall -g -fsanitize=address -fsanitize=undefined 
+CFLAGS = -Wall
 # TODO: Remove sanitizers
 
 SRC = src/

@@ -64,7 +64,7 @@ int llopen(LinkLayer connectionParameters)
             if (r > 0) {
                 stopAlarm();
                 connectionOpen = TRUE;
-                gettimeofday(&statistics.start, NULL);
+                clock_gettime(CLOCK_MONOTONIC, &statistics.start);
                 return 1;
             }
 
@@ -87,7 +87,7 @@ int llopen(LinkLayer connectionParameters)
                     return -1;
                 
                 connectionOpen = TRUE;
-                gettimeofday(&statistics.start, NULL);
+                clock_gettime(CLOCK_MONOTONIC, &statistics.start);
                 return 1;
             }
             if (controlField == DISC) {
@@ -273,7 +273,7 @@ int llclose(int showStatistics)
         }
 
         stopAlarm();
-        gettimeofday(&statistics.end, NULL);
+        clock_gettime(CLOCK_MONOTONIC, &statistics.end);
         
     } else {
         uint8_t controlField;
@@ -290,7 +290,7 @@ int llclose(int showStatistics)
                 return -1;
         } while (controlField != UA);
         
-        gettimeofday(&statistics.end, NULL);
+        clock_gettime(CLOCK_MONOTONIC, &statistics.end);
     }
 
     connectionOpen = FALSE;

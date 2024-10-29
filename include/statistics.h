@@ -1,7 +1,7 @@
 #ifndef _STATISTICS_H_
 #define _STATISTICS_H_
 
-#include <sys/time.h>
+#include <time.h>
 
 #include "link_layer.h"
 
@@ -12,8 +12,8 @@
 typedef struct {
     LinkLayerRole role;
     unsigned int baudrate;
-    struct timeval start;
-    struct timeval end;
+    struct timespec start;
+    struct timespec end;
     unsigned int dataBytes;
     unsigned int totalBytes;
     unsigned int totalFrames;
