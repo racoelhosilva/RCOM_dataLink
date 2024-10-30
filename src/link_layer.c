@@ -69,7 +69,7 @@ int llopen(LinkLayer connectionParameters)
             }
 
             statistics.totalTimeouts++;
-            debugLog("Try #%d\n", alarmStatus.count);
+            printf("Try #%d\n", alarmStatus.count);
         }
 
         stopAlarm();
@@ -158,7 +158,7 @@ int llwrite(const unsigned char *buf, int bufSize) {
         }
 
         statistics.totalTimeouts++;
-        debugLog("Try #%d\n", alarmStatus.count);
+        printf("Try #%d\n", alarmStatus.count);
     }
 
     errorLog(__func__, "Max send tries exceeded");
@@ -260,7 +260,7 @@ int llclose(int showStatistics)
             
             if (r == 0) {
                 statistics.totalTimeouts++;
-                debugLog("Try #%d\n", alarmStatus.count);
+                printf("Try #%d\n", alarmStatus.count);
                 continue;
             }
 

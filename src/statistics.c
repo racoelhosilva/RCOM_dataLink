@@ -68,7 +68,7 @@ int storeStatistics() {
         const char *filename = "stats-tx.csv";
         if ((file = fopen(filename, "r")) != NULL) {
             fclose(file);
-            
+
             file = fopen(filename, "a");
             if (file == NULL) {
                 errorLog(__func__, "Couldn't open statistics spreadsheet");
@@ -82,10 +82,10 @@ int storeStatistics() {
                 return -1;
             }
         
-            fprintf(file, "Bit error ratio,Propagation time,Baudrate,Payload size,Communication time (s),Measured baudrate,Efficiency,Total bytes,Data bytes,Total frames,NACK's,Timeouts,Frame error ratio\n");
+            fprintf(file, "Bit error ratio,Propagation time,Baudrate,Payload size,Communication time (s),Measured baudrate,Efficiency,Total bytes,Data bytes,Total frames,NACK's,Timeouts,Frame error ratio,Errors in file\n");
         }
 
-        fprintf(file, ",,%d,%d,%f,%f,%f,%d,%d,%d,%d,%d,%f\n",
+        fprintf(file, ",,%d,%d,%f,%f,%f,%d,%d,%d,%d,%d,%f,\n",
             statistics.baudrate,
             MAX_PAYLOAD_SIZE,
             totalTime / 1e9,
@@ -115,10 +115,10 @@ int storeStatistics() {
                 return -1;
             }
 
-            fprintf(file, "Bit error ratio,Propagation time,Baudrate,Payload size,Communication time (s),Measured baudrate,Efficiency,Total bytes,Data bytes,Total frames,Good frames,Bad frames,Frame error ratio\n");
+            fprintf(file, "Bit error ratio,Propagation time,Baudrate,Payload size,Communication time (s),Measured baudrate,Efficiency,Total bytes,Data bytes,Total frames,Good frames,Bad frames,Frame error ratio,Errors in file\n");
         }
 
-        fprintf(file, ",,%d,%d,%f,%f,%f,%d,%d,%d,%d,%d,%f\n",
+        fprintf(file, ",,%d,%d,%f,%f,%f,%d,%d,%d,%d,%d,%f,\n",
             statistics.baudrate,
             MAX_PAYLOAD_SIZE,
             totalTime / 1e9,

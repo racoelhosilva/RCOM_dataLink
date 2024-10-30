@@ -4,7 +4,6 @@
 # Parameters
 CC = gcc
 CFLAGS = -Wall
-# TODO: Remove sanitizers
 
 SRC = src/
 INCLUDE = include/
