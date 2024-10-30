@@ -66,7 +66,9 @@ int storeStatistics() {
 
     if (statistics.role == LlTx) {
         const char *filename = "stats-tx.csv";
-        if (access(filename, F_OK) == 0) {
+        if ((file = fopen(filename, "r")) != NULL) {
+            fclose(file);
+            
             file = fopen(filename, "a");
             if (file == NULL) {
                 errorLog(__func__, "Couldn't open statistics spreadsheet");
