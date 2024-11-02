@@ -73,3 +73,4 @@ clean:
 	rm -f $(BIN)/main-stats
 	rm -f $(BIN)/cable
 	rm -f $(RX_FILE)
+	rm -f stats-*.txt
